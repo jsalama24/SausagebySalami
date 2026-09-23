@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>CureCraft - Meat Curing Recipe & Fermentation Tracker</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Chart.js for Fermentation & Drying Weight Loss Curves -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#fdf2f2',
+              100: '#fde8e8',
+              500: '#981b1e',
+              600: '#7f1d1d',
+              700: '#641717',
+              800: '#4c1212',
+              900: '#380e0e'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col pb-20 md:pb-6">
+
+  <header class="sticky top-0 z-30 bg-slate-900/90 backdrop-blur border-b border-slate-800 px-4 py-3 shadow-md">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-red-700 to-red-900 flex items-center justify-center text-white shadow-lg shadow-red-950/60 border border-red-600/40">
+          <i class="fa-solid fa-drumstick-bite text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg leading-none tracking-tight text-white flex items-center gap-2">
+            CureCraft
+            <span class="text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full bg-red-950/80 text-red-300 border border-red-800/60">Pro</span>
+          </h1>
+          <p class="text-[11px] text-slate-400 mt-0.5">Meat Curing & Fermentation Tracker</p>
+        </div>
+      </div>
+
+      <!-- Sync Status Badge -->
+      <button onclick="switchTab('sync')" class="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium border border-slate-700 transition-all">
+        <span id="syncIndicator" class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+        <span id="syncStatusText" class="text-slate-300">Local Storage</span>
+        <i class="fa-solid fa-cloud-arrow-up text-slate-400 ml-1"></i>
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-6 w-full flex-grow">
+
+    <!-- Desktop Navigation Tabs -->
+    <div class="hidden md:flex space-x-2 mb-6 border-b border-slate-800 pb-3">
+      <button onclick="switchTab('recipes')" id="tab-btn-recipes" class="tab-nav px-4 py-2 rounded-xl font-medium text-sm flex items-center space-x-2 bg-slate-800 text-white border border-slate-700 shadow-sm">
+        <i class="fa-solid fa-book-open text-emerald-400"></i>
+        <span>Recipe Library</span>
+      </button>
+      <button onclick="switchTab('calculator')" id="tab-btn-calculator" class="tab-nav px-4 py-2 rounded-xl font-medium text-sm flex items-center space-x-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+        <i class="fa-solid fa-calculator text-amber-400"></i>
+        <span>Cure Scaling Calculator</span>
+      </button>
+      <button onclick="switchTab('tracker')" id="tab-btn-tracker" class="tab-nav px-4 py-2 rounded-xl font-medium text-sm flex items-center space-x-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+        <i class="fa-solid fa-temperature-arrow-down text-red-400"></i>
+        <span>Fermentation & Drying Tracker</span>
+      </button>
+      <button onclick="switchTab('sync')" id="tab-btn-sync" class="tab-nav px-4 py-2 rounded-xl font-medium text-sm flex items-center space-x-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50">
+        <i class="fa-solid fa-cloud text-blue-400"></i>
+        <span>Cloud Sync & Backup</span>
+      </button>
+    </div>
+
+    <section id="view-recipes" class="tab-content block space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-xl font-bold text-white">Recipe Library</h2>
+          <p class="text-xs text-slate-400">Baker's percentages based on 100% green meat weight</p>
+        </div>
+        <button onclick="openRecipeModal()" class="px-3.5 py-2 rounded-xl bg-red-700 hover:bg-red-600 text-white font-semibold text-xs flex items-center space-x-2 shadow-lg shadow-red-950/50 transition-all">
+          <i class="fa-solid fa-plus"></i>
+          <span>Create Recipe</span>
+        </button>
+      </div>
+
+      <div id="recipeGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <!-- Recipes dynamically rendered here -->
+      </div>
+    </section>
+
+    <section id="view-calculator" class="tab-content hidden space-y-6">
+      <div class="bg-slate-900 rounded-2xl border border-slate-800 p-5 md:p-6 shadow-xl">
+        <h2 class="text-xl font-bold text-white mb-1">Cure Scaling Calculator</h2>
+        <p class="text-xs text-slate-400 mb-6">Select a recipe, input your green meat weight, and get precise ingredient measurements in grams or lbs.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <!-- Select Recipe -->
+          <div class="md:col-span-1">
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Select Recipe</label>
+            <select id="calcRecipeSelect" onchange="calculateCure()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-red-500 transition-colors">
+              <!-- Populated via JS -->
+            </select>
+          </div>
+
+          <!-- Meat Weight Input -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Meat Green Weight</label>
+            <div class="relative">
+              <input type="number" id="calcMeatWeight" value="1000" min="1" step="0.1" oninput="calculateCure()" class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-16 py-3 text-white text-lg font-semibold font-mono focus:outline-none focus:border-red-500 transition-colors">
+              <span id="calcUnitBadge" class="absolute right-3 top-3.5 text-xs font-semibold text-slate-400 uppercase bg-slate-800 px-2 py-0.5 rounded">g</span>
+            </div>
+          </div>
+
+          <!-- Unit Selector -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Unit</label>
+            <div class="grid grid-cols-2 gap-2 bg-slate-950 p-1 rounded-xl border border-slate-800">
+              <button type="button" onclick="setCalcUnit('g')" id="btnUnitG" class="py-2 rounded-lg text-xs font-bold text-white bg-red-700 shadow-sm transition-all">Grams (g)</button>
+              <button type="button" onclick="setCalcUnit('lbs')" id="btnUnitLbs" class="py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all">Pounds (lbs)</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Target Target Loss Slider -->
+        <div class="bg-slate-950/70 p-4 rounded-xl border border-slate-800/80 mb-6 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Target Moisture Loss (%)</label>
+            <div class="flex items-center space-x-3">
+              <input type="range" id="calcTargetLoss" min="20" max="45" value="35" oninput="updateTargetLossDisplay(this.value); calculateCure();" class="w-full accent-red-600">
+              <span id="targetLossValue" class="text-sm font-bold font-mono text-red-400 w-12 text-right">35%</span>
+            </div>
+          </div>
+          <div class="flex items-center justify-between md:justify-end md:space-x-8 bg-slate-900 px-4 py-2.5 rounded-lg border border-slate-800">
+            <span class="text-xs text-slate-400">Target Finished Weight:</span>
+            <span id="calcTargetWeightDisplay" class="text-lg font-bold font-mono text-emerald-400">650 g</span>
+          </div>
+        </div>
+
+        <!-- Calculated Ingredient Breakout Table -->
+        <div class="mb-6">
+          <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Calculated Ingredient Quantities</h3>
+          <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-900 text-xs text-slate-400 uppercase border-b border-slate-800 font-semibold">
+                  <th class="py-3 px-4">Ingredient Name</th>
+                  <th class="py-3 px-4 text-center">Baker's %</th>
+                  <th class="py-3 px-4 text-right">Weight Needed</th>
+                </tr>
+              </thead>
+              <tbody id="calcIngredientRows" class="divide-y divide-slate-800/60 text-sm">
+                <!-- Dynamic calculation rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Start Tracking Action -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-800">
+          <input type="text" id="calcBatchTitle" placeholder="Batch Label / Tag (e.g. Salami Milano Batch #1)" class="w-full sm:w-80 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-red-500">
+          <button onclick="startBatchFromCalc()" class="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-lg shadow-emerald-950/50 flex items-center justify-center space-x-2 transition-all">
+            <i class="fa-solid fa-temperature-arrow-down"></i>
+            <span>Send to Fermentation & Drying Tracker</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-tracker" class="tab-content hidden space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-xl font-bold text-white">Fermentation & Drying Tracker</h2>
+          <p class="text-xs text-slate-400">Track chamber temperature, humidity, daily weigh-ins and target weight loss curves</p>
+        </div>
+        <button onclick="switchTab('calculator')" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-semibold text-xs flex items-center space-x-2 transition-all">
+          <i class="fa-solid fa-plus text-amber-400"></i>
+          <span>New Batch</span>
+        </button>
+      </div>
+
+      <div id="batchesContainer" class="space-y-6">
+        <!-- Dynamic Curing Projects Rendered Here -->
+      </div>
+    </section>
+
+    <section id="view-sync" class="tab-content hidden space-y-6">
+      
+      <!-- Instructions Card -->
+      <div class="bg-slate-900 rounded-2xl border border-slate-800 p-5 md:p-6 shadow-xl">
+        <div class="flex items-center space-x-3 mb-4">
+          <div class="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
+            <i class="fa-solid fa-cloud-bolt text-xl"></i>
+          </div>
+          <div>
+            <h2 class="text-lg font-bold text-white">Firebase Cloud Synchronization</h2>
+            <p class="text-xs text-slate-400">Sync your curing recipes and active projects seamlessly between iPhone & PC</p>
+          </div>
+        </div>
+
+        <div class="space-y-4 text-xs text-slate-300 leading-relaxed bg-slate-950/80 p-4 rounded-xl border border-slate-800 mb-6">
+          <h3 class="font-bold text-amber-400 text-sm flex items-center gap-2">
+            <i class="fa-solid fa-list-ol"></i> Setup Instructions (Free Firebase Database):
+          </h3>
+          <ol class="list-decimal list-inside space-y-2 text-slate-300 pl-1">
+            <li>Go to <a href="https://console.firebase.google.com/" target="_blank" class="text-red-400 hover:underline font-semibold">console.firebase.google.com</a> and click <strong>Add Project</strong> (name it e.g. <em>MyCureCraft</em>).</li>
+            <li>In the left menu, select <strong>Build > Firestore Database</strong>, click <strong>Create database</strong>, select <strong>Start in test mode</strong>, and pick a location.</li>
+            <li>In the left menu, select <strong>Build > Authentication</strong>, click <strong>Get started</strong>, go to <strong>Sign-in method</strong>, enable <strong>Anonymous</strong>, and click Save.</li>
+            <li>Click the gear icon ⚙️ (Project Settings) at the top left, scroll to <strong>Your apps</strong>, click the web icon (<strong>&lt;/&gt;</strong>), and register the app.</li>
+            <li>Copy the generated <strong>firebaseConfig</strong> keys and paste them into the input fields below!</li>
+          </ol>
+        </div>
+
+        <!-- Firebase Config Inputs -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">API Key (apiKey)</label>
+            <input type="text" id="cfg_apiKey" placeholder="AIzaSy..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-red-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Auth Domain (authDomain)</label>
+            <input type="text" id="cfg_authDomain" placeholder="my-app.firebaseapp.com" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-red-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Project ID (projectId)</label>
+            <input type="text" id="cfg_projectId" placeholder="my-app-id" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-red-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Storage Bucket (storageBucket)</label>
+            <input type="text" id="cfg_storageBucket" placeholder="my-app.appspot.com" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-red-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Messaging Sender ID</label>
+            <input type="text" id="cfg_messagingSenderId" placeholder="1234567890" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-red-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">App ID (appId)</label>
+            <input type="text" id="cfg_appId" placeholder="1:1234567890:web:abcdef..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-red-500">
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-800">
+          <button onclick="clearFirebaseConfig()" class="px-4 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-slate-400 hover:text-white transition-all">
+            Disconnect & Clear Keys
+          </button>
+          <button onclick="saveAndConnectFirebase()" class="px-6 py-2.5 rounded-xl bg-red-700 hover:bg-red-600 text-white font-semibold text-xs shadow-lg shadow-red-950/50 flex items-center space-x-2 transition-all">
+            <i class="fa-solid fa-plug"></i>
+            <span>Save & Connect Cloud Sync</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Backup JSON Export / Import -->
+      <div class="bg-slate-900 rounded-2xl border border-slate-800 p-5 md:p-6 shadow-xl">
+        <h3 class="text-base font-bold text-white mb-1">Manual File Backup</h3>
+        <p class="text-xs text-slate-400 mb-4">Export recipes and batch histories directly to a JSON file on your computer or phone</p>
+
+        <div class="flex flex-wrap gap-3">
+          <button onclick="exportJSONBackup()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-white flex items-center space-x-2 transition-all">
+            <i class="fa-solid fa-download text-emerald-400"></i>
+            <span>Export Backup (.JSON)</span>
+          </button>
+          <label class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-white flex items-center space-x-2 cursor-pointer transition-all">
+            <i class="fa-solid fa-upload text-blue-400"></i>
+            <span>Import Backup File</span>
+            <input type="file" id="importJsonInput" accept=".json" onchange="importJSONBackup(event)" class="hidden">
+          </label>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-slate-900/95 backdrop-blur border-t border-slate-800 px-2 py-2">
+    <div class="flex justify-around items-center">
+      <button onclick="switchTab('recipes')" id="mobile-tab-recipes" class="mobile-nav-btn flex flex-col items-center py-1 px-3 text-emerald-400">
+        <i class="fa-solid fa-book-open text-base mb-0.5"></i>
+        <span class="text-[10px] font-medium">Recipes</span>
+      </button>
+      <button onclick="switchTab('calculator')" id="mobile-tab-calculator" class="mobile-nav-btn flex flex-col items-center py-1 px-3 text-slate-400">
+        <i class="fa-solid fa-calculator text-base mb-0.5"></i>
+        <span class="text-[10px] font-medium">Calc</span>
+      </button>
+      <button onclick="switchTab('tracker')" id="mobile-tab-tracker" class="mobile-nav-btn flex flex-col items-center py-1 px-3 text-slate-400">
+        <i class="fa-solid fa-temperature-arrow-down text-base mb-0.5"></i>
+        <span class="text-[10px] font-medium">Tracker</span>
+      </button>
+      <button onclick="switchTab('sync')" id="mobile-tab-sync" class="mobile-nav-btn flex flex-col items-center py-1 px-3 text-slate-400">
+        <i class="fa-solid fa-cloud text-base mb-0.5"></i>
+        <span class="text-[10px] font-medium">Sync</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- MODAL 1: WEIGH-IN LOG MODAL -->
+  <div id="weighModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
+      <button onclick="closeWeighModal()" class="absolute right-4 top-4 text-slate-400 hover:text-white">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+      <h3 class="text-lg font-bold text-white mb-1">Log Weigh-in Entry</h3>
+      <p id="weighModalSubtitle" class="text-xs text-slate-400 mb-4">Record weight and chamber conditions</p>
+
+      <div class="space-y-4 mb-6">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Current Weight</label>
+          <div class="relative">
+            <input type="number" id="weighInputGrams" step="0.1" placeholder="e.g. 820" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-lg font-bold font-mono text-white focus:outline-none focus:border-red-500">
+            <span id="weighModalUnit" class="absolute right-4 top-3.5 text-xs font-semibold text-slate-400">g</span>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Chamber Temp (°C / °F)</label>
+            <input type="text" id="weighInputTemp" placeholder="12°C / 54°F" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Chamber RH (%)</label>
+            <input type="text" id="weighInputRH" placeholder="75%" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Notes / Mold Progress</label>
+          <input type="text" id="weighInputNote" placeholder="e.g. Good white Penicillium nalgiovense growth" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500">
+        </div>
+      </div>
+
+      <div class="flex justify-end space-x-3">
+        <button onclick="closeWeighModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300">Cancel</button>
+        <button onclick="submitWeightLog()" class="px-5 py-2 rounded-xl bg-red-700 hover:bg-red-600 text-xs font-semibold text-white shadow-lg shadow-red-950/50">Save Weighing</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: ADD RECIPE MODAL -->
+  <div id="recipeModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl relative max-h-[90vh] flex flex-col">
+      <button onclick="closeRecipeModal()" class="absolute right-4 top-4 text-slate-400 hover:text-white">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+      <h3 class="text-lg font-bold text-white mb-1">Create Custom Curing Recipe</h3>
+      <p class="text-xs text-slate-400 mb-4">Set up ingredients using baker's percentages (meat weight = 100%)</p>
+
+      <div class="space-y-4 mb-4 overflow-y-auto pr-1 no-scrollbar flex-grow">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Recipe Name</label>
+            <input type="text" id="newRecName" placeholder="e.g. Traditional Capocollo" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Category</label>
+            <select id="newRecCategory" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500">
+              <option value="Dry Cured Sausage">Dry Cured Sausage (Salami)</option>
+              <option value="Whole Muscle">Whole Muscle</option>
+              <option value="Semi-Dry Cured">Semi-Dry Cured</option>
+              <option value="Brined & Smoked">Brined & Smoked</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Target Weight Loss (%)</label>
+          <input type="number" id="newRecTargetLoss" value="35" min="15" max="50" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500">
+        </div>
+
+        <div>
+          <div class="flex justify-between items-center mb-2">
+            <label class="block text-xs font-semibold text-slate-300 uppercase">Ingredients List</label>
+            <button type="button" onclick="addIngredientRow()" class="text-[11px] font-semibold text-red-400 hover:text-red-300">
+              <i class="fa-solid fa-plus mr-1"></i>Add Row
+            </button>
+          </div>
+          <div id="newRecIngredientsList" class="space-y-2">
+            <!-- Dynamic ingredient input rows -->
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end space-x-3 pt-3 border-t border-slate-800">
+        <button onclick="closeRecipeModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300">Cancel</button>
+        <button onclick="saveNewRecipe()" class="px-5 py-2 rounded-xl bg-red-700 hover:bg-red-600 text-xs font-semibold text-white shadow-lg shadow-red-950/50">Save Recipe</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // Default Curing Recipes Preset
+    const DEFAULT_RECIPES = [
+      {
+        id: "rec-salami-milano",
+        name: "Salami Milano",
+        category: "Dry Cured Sausage",
+        targetLoss: 35,
+        ingredients: [
+          { name: "Sea Salt / Kosher Salt", pct: 2.8 },
+          { name: "Cure #2 (Prague Powder #2)", pct: 0.25 },
+          { name: "Dextrose / Sugar", pct: 0.4 },
+          { name: "White Pepper (Ground)", pct: 0.3 },
+          { name: "Garlic Powder", pct: 0.15 },
+          { name: "Red Wine (Chianti)", pct: 1.5 }
+        ]
+      },
+      {
+        id: "rec-capocollo",
+        name: "Capocollo (Coppa)",
+        category: "Whole Muscle",
+        targetLoss: 35,
+        ingredients: [
+          { name: "Sea Salt", pct: 2.75 },
+          { name: "Cure #2 (Prague Powder #2)", pct: 0.25 },
+          { name: "Black Pepper (Coarse Cracked)", pct: 1.0 },
+          { name: "Paprika / Calabrian Chili", pct: 0.8 },
+          { name: "Fennel Seed", pct: 0.4 },
+          { name: "Garlic", pct: 0.2 }
+        ]
+      },
+      {
+        id: "rec-duck-prosciutto",
+        name: "Duck Breast Prosciutto",
+        category: "Whole Muscle",
+        targetLoss: 30,
+        ingredients: [
+          { name: "Kosher Salt", pct: 2.5 },
+          { name: "Cure #1 (Prague Powder #1)", pct: 0.25 },
+          { name: "Black Pepper", pct: 0.8 },
+          { name: "Thyme & Rosemary", pct: 0.3 },
+          { name: "Juniper Berries (Crushed)", pct: 0.2 }
+        ]
+      },
+      {
+        id: "rec-bresaola",
+        name: "Beef Bresaola",
+        category: "Whole Muscle",
+        targetLoss: 38,
+        ingredients: [
+          { name: "Sea Salt", pct: 3.0 },
+          { name: "Cure #2", pct: 0.25 },
+          { name: "Black Pepper", pct: 0.6 },
+          { name: "Juniper Berries", pct: 0.4 },
+          { name: "Cinnamon & Cloves", pct: 0.05 },
+          { name: "Red Wine", pct: 2.0 }
+        ]
+      }
+    ];
+
+    // INITIAL APP STATE
+    let state = {
+      recipes: JSON.parse(localStorage.getItem('curecraft_recipes')) || DEFAULT_RECIPES,
+      batches: JSON.parse(localStorage.getItem('curecraft_batches')) || [],
+      firebaseConfig: JSON.parse(localStorage.getItem('curecraft_firebase_cfg')) || null,
+      calcUnit: 'g',
+      activeModalBatchId: null
+    };
+
+    let firebaseDb = null;
+    let firebaseAuth = null;
+    let unsubscribeSync = null;
+    let chartInstances = {};
+
+    function saveLocally() {
+      localStorage.setItem('curecraft_recipes', JSON.stringify(state.recipes));
+      localStorage.setItem('curecraft_batches', JSON.stringify(state.batches));
+      if (firebaseDb && firebaseAuth?.currentUser) {
+        syncToFirebase();
+      }
+    }
+
+    async function initFirebaseIfConfigured() {
+      if (!state.firebaseConfig || !state.firebaseConfig.apiKey) {
+        updateSyncStatusUI(false, "Local Storage");
+        return;
+      }
+
+      try {
+        const app = initializeApp(state.firebaseConfig);
+        firebaseAuth = getAuth(app);
+        firebaseDb = getFirestore(app);
+
+        const userCred = await signInAnonymously(firebaseAuth);
+        const userId = userCred.user.uid;
+
+        updateSyncStatusUI(true, "Cloud Synced");
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'curecraft-app';
+        const docRef = doc(firebaseDb, 'artifacts', appId, 'users', userId, 'data', 'appState');
+
+        if (unsubscribeSync) unsubscribeSync();
+
+        unsubscribeSync = onSnapshot(docRef, (docSnap) => {
+          if (docSnap.exists()) {
+            const remoteData = docSnap.data();
+            if (remoteData.recipes) state.recipes = remoteData.recipes;
+            if (remoteData.batches) state.batches = remoteData.batches;
+            localStorage.setItem('curecraft_recipes', JSON.stringify(state.recipes));
+            localStorage.setItem('curecraft_batches', JSON.stringify(state.batches));
+            renderAll();
+          }
+        }, (err) => {
+          console.error("Firebase sync error:", err);
+          updateSyncStatusUI(false, "Sync Error");
+        });
+
+      } catch (err) {
+        console.error("Firebase Auth/Init Failed:", err);
+        updateSyncStatusUI(false, "Config Error");
+      }
+    }
+
+    async function syncToFirebase() {
+      if (!firebaseDb || !firebaseAuth?.currentUser) return;
+      try {
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'curecraft-app';
+        const userId = firebaseAuth.currentUser.uid;
+        const docRef = doc(firebaseDb, 'artifacts', appId, 'users', userId, 'data', 'appState');
+        await setDoc(docRef, {
+          recipes: state.recipes,
+          batches: state.batches,
+          updatedAt: new Date().toISOString()
+        });
+      } catch (err) {
+        console.error("Error writing to Firebase:", err);
+      }
+    }
+
+    function updateSyncStatusUI(connected, text) {
+      const ind = document.getElementById('syncIndicator');
+      const txt = document.getElementById('syncStatusText');
+
+      if (connected) {
+        ind.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
+        txt.textContent = "Cloud Synced";
+        txt.className = "text-emerald-400 font-semibold";
+      } else {
+        ind.className = "w-2.5 h-2.5 rounded-full bg-amber-500";
+        txt.textContent = text || "Local Storage";
+        txt.className = "text-slate-300";
+      }
+    }
+
+    window.switchTab = function(tabName) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.getElementById(`view-${tabName}`).classList.remove('hidden');
+
+      // Desktop Tab Styles
+      document.querySelectorAll('.tab-nav').forEach(btn => {
+        btn.className = "tab-nav px-4 py-2 rounded-xl font-medium text-sm flex items-center space-x-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50";
+      });
+      const activeDeskBtn = document.getElementById(`tab-btn-${tabName}`);
+      if (activeDeskBtn) {
+        activeDeskBtn.className = "tab-nav px-4 py-2 rounded-xl font-medium text-sm flex items-center space-x-2 bg-slate-800 text-white border border-slate-700 shadow-sm";
+      }
+
+      // Mobile Tab Styles
+      document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
+        btn.classList.remove('text-emerald-400', 'text-amber-400', 'text-red-400', 'text-blue-400');
+        btn.classList.add('text-slate-400');
+      });
+      const activeMobileBtn = document.getElementById(`mobile-tab-${tabName}`);
+      if (activeMobileBtn) {
+        activeMobileBtn.classList.remove('text-slate-400');
+        if (tabName === 'recipes') activeMobileBtn.classList.add('text-emerald-400');
+        if (tabName === 'calculator') activeMobileBtn.classList.add('text-amber-400');
+        if (tabName === 'tracker') activeMobileBtn.classList.add('text-red-400');
+        if (tabName === 'sync') activeMobileBtn.classList.add('text-blue-400');
+      }
+
+      if (tabName === 'tracker') {
+        renderBatches();
+      }
+    };
+
+    window.setCalcUnit = function(unit) {
+      state.calcUnit = unit;
+      const btnG = document.getElementById('btnUnitG');
+      const btnLbs = document.getElementById('btnUnitLbs');
+      const badge = document.getElementById('calcUnitBadge');
+
+      if (unit === 'g') {
+        btnG.className = "py-2 rounded-lg text-xs font-bold text-white bg-red-700 shadow-sm transition-all";
+        btnLbs.className = "py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all";
+        badge.textContent = 'g';
+      } else {
+        btnLbs.className = "py-2 rounded-lg text-xs font-bold text-white bg-red-700 shadow-sm transition-all";
+        btnG.className = "py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all";
+        badge.textContent = 'lbs';
+      }
+      calculateCure();
+    };
+
+    window.populateCalcDropdown = function() {
+      const select = document.getElementById('calcRecipeSelect');
+      select.innerHTML = state.recipes.map(r => `<option value="${r.id}">${r.name} (${r.category})</option>`).join('');
+      calculateCure();
+    };
+
+    window.updateTargetLossDisplay = function(val) {
+      document.getElementById('targetLossValue').innerText = `${val}%`;
+    };
+
+    window.calculateCure = function() {
+      const recipeId = document.getElementById('calcRecipeSelect').value;
+      const recipe = state.recipes.find(r => r.id === recipeId) || state.recipes[0];
+      const greenWeight = parseFloat(document.getElementById('calcMeatWeight').value) || 0;
+      const targetLossPct = parseFloat(document.getElementById('calcTargetLoss').value) || 35;
+
+      const targetWeight = (greenWeight * (1 - targetLossPct / 100)).toFixed(1);
+      document.getElementById('calcTargetWeightDisplay').innerText = `${targetWeight} ${state.calcUnit}`;
+
+      const tbody = document.getElementById('calcIngredientRows');
+      tbody.innerHTML = recipe.ingredients.map(ing => {
+        const weightNeeded = ((greenWeight * ing.pct) / 100).toFixed(2);
+        return `
+          <tr class="hover:bg-slate-900/60">
+            <td class="py-3 px-4 font-medium text-slate-200">${ing.name}</td>
+            <td class="py-3 px-4 text-center font-mono text-slate-400">${ing.pct}%</td>
+            <td class="py-3 px-4 text-right font-mono font-semibold text-red-400">${weightNeeded} ${state.calcUnit}</td>
+          </tr>
+        `;
+      }).join('');
+    };
+
+    window.startBatchFromCalc = function() {
+      const recipeId = document.getElementById('calcRecipeSelect').value;
+      const recipe = state.recipes.find(r => r.id === recipeId);
+      const greenWeight = parseFloat(document.getElementById('calcMeatWeight').value);
+      const targetLossPct = parseFloat(document.getElementById('calcTargetLoss').value);
+      const title = document.getElementById('calcBatchTitle').value.trim() || `${recipe.name} Batch`;
+
+      if (!greenWeight || greenWeight <= 0) {
+        alert("Please enter a valid green meat weight.");
+        return;
+      }
+
+      const targetWeight = parseFloat((greenWeight * (1 - targetLossPct / 100)).toFixed(1));
+
+      const newBatch = {
+        id: "batch-" + Date.now(),
+        title: title,
+        recipeName: recipe.name,
+        unit: state.calcUnit,
+        startDate: new Date().toISOString().split('T')[0],
+        greenWeight: greenWeight,
+        targetLossPct: targetLossPct,
+        targetWeight: targetWeight,
+        logs: [
+          { date: new Date().toISOString().split('T')[0], weight: greenWeight, temp: '12°C', rh: '75%', note: "Initial Green Weight" }
+        ]
+      };
+
+      state.batches.unshift(newBatch);
+      saveLocally();
+      document.getElementById('calcBatchTitle').value = '';
+      window.switchTab('tracker');
+    };
+
+    function renderBatches() {
+      const container = document.getElementById('batchesContainer');
+      if (state.batches.length === 0) {
+        container.innerHTML = `
+          <div class="bg-slate-900 rounded-2xl border border-dashed border-slate-800 p-8 text-center">
+            <i class="fa-solid fa-temperature-arrow-down text-4xl text-slate-700 mb-3"></i>
+            <h3 class="text-base font-semibold text-slate-300">No active fermentation or drying projects</h3>
+            <p class="text-xs text-slate-500 mt-1 mb-4">Calculate ingredient ratios and launch your first batch into the tracker.</p>
+            <button onclick="switchTab('calculator')" class="px-4 py-2 rounded-xl bg-red-700 hover:bg-red-600 text-white text-xs font-semibold">
+              Go to Cure Calculator
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = state.batches.map(batch => {
+        const latestLog = batch.logs[batch.logs.length - 1];
+        const currentWeight = latestLog ? latestLog.weight : batch.greenWeight;
+        const totalLost = batch.greenWeight - currentWeight;
+        const pctLost = ((totalLost / batch.greenWeight) * 100).toFixed(1);
+        const progressToGoal = Math.min(100, Math.max(0, ((pctLost / batch.targetLossPct) * 100))).toFixed(0);
+        const isReady = parseFloat(pctLost) >= batch.targetLossPct;
+
+        return `
+          <div class="bg-slate-900 rounded-2xl border border-slate-800 p-5 md:p-6 shadow-xl space-y-5">
+            <!-- Header row -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-4">
+              <div>
+                <div class="flex items-center space-x-2">
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-red-400 bg-red-950/80 px-2.5 py-0.5 rounded border border-red-800/60">${batch.recipeName}</span>
+                  <span class="text-xs text-slate-400 font-mono"><i class="fa-solid fa-calendar text-slate-500 mr-1"></i>${batch.startDate}</span>
+                </div>
+                <h3 class="text-xl font-bold text-white mt-1">${batch.title}</h3>
+              </div>
+              <div class="flex items-center space-x-2 self-end sm:self-center">
+                <button onclick="openWeighModal('${batch.id}')" class="px-3.5 py-2 rounded-xl bg-red-700 hover:bg-red-600 text-white font-semibold text-xs flex items-center space-x-1.5 shadow-md shadow-red-950/50">
+                  <i class="fa-solid fa-scale-balanced"></i>
+                  <span>Log Weight</span>
+                </button>
+                <button onclick="deleteBatch('${batch.id}')" class="p-2 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-red-400 border border-slate-800 text-xs">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Metrics Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+              <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800/60">
+                <div class="text-[10px] font-semibold uppercase text-slate-400">Green Starting</div>
+                <div class="text-sm font-bold font-mono text-slate-200 mt-0.5">${batch.greenWeight} ${batch.unit}</div>
+              </div>
+              <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800/60">
+                <div class="text-[10px] font-semibold uppercase text-slate-400">Current Weight</div>
+                <div class="text-sm font-bold font-mono text-white mt-0.5">${currentWeight} ${batch.unit}</div>
+              </div>
+              <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800/60">
+                <div class="text-[10px] font-semibold uppercase text-slate-400">Target Weight</div>
+                <div class="text-sm font-bold font-mono text-emerald-400 mt-0.5">${batch.targetWeight} ${batch.unit}</div>
+              </div>
+              <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800/60">
+                <div class="text-[10px] font-semibold uppercase text-slate-400">Moisture Loss</div>
+                <div class="text-sm font-bold font-mono ${isReady ? 'text-emerald-400' : 'text-amber-400'} mt-0.5">${pctLost}% / ${batch.targetLossPct}%</div>
+              </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div>
+              <div class="flex justify-between text-xs mb-1 font-semibold">
+                <span class="text-slate-400">Overall Loss Completion</span>
+                <span class="${isReady ? 'text-emerald-400' : 'text-amber-400'}">${progressToGoal}% Completed</span>
+              </div>
+              <div class="w-full bg-slate-950 rounded-full h-3 overflow-hidden border border-slate-800">
+                <div class="h-3 rounded-full ${isReady ? 'bg-emerald-500' : 'bg-red-600'} transition-all duration-500" style="width: ${progressToGoal}%"></div>
+              </div>
+            </div>
+
+            <!-- Chart & Weighing Logs -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 pt-2">
+              <!-- Drying Curve Chart -->
+              <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col justify-center">
+                <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Weight Loss Curve</h4>
+                <div class="h-44 w-full">
+                  <canvas id="chart-${batch.id}"></canvas>
+                </div>
+              </div>
+
+              <!-- Weighing History Log Table -->
+              <div class="bg-slate-950 rounded-xl border border-slate-800 p-4 flex flex-col justify-between">
+                <div>
+                  <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Weigh-in Log Entries</h4>
+                  <div class="overflow-y-auto max-h-36 space-y-2 pr-1 no-scrollbar">
+                    ${batch.logs.slice().reverse().map(log => `
+                      <div class="flex items-center justify-between text-xs bg-slate-900/80 px-3 py-2 rounded-lg border border-slate-800/80">
+                        <span class="font-mono text-slate-400">${log.date}</span>
+                        <span class="font-mono font-bold text-white">${log.weight} ${batch.unit}</span>
+                        <span class="text-[10px] text-slate-400">${log.temp || ''} | ${log.rh || ''}</span>
+                        <span class="text-[10px] text-slate-500 truncate max-w-[100px]">${log.note || ''}</span>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Render Charts for each batch
+      setTimeout(() => {
+        state.batches.forEach(batch => {
+          renderBatchChart(batch);
+        });
+      }, 50);
+    }
+
+    function renderBatchChart(batch) {
+      const canvas = document.getElementById(`chart-${batch.id}`);
+      if (!canvas) return;
+
+      if (chartInstances[batch.id]) {
+        chartInstances[batch.id].destroy();
+      }
+
+      const labels = batch.logs.map(l => l.date);
+      const weights = batch.logs.map(l => l.weight);
+
+      chartInstances[batch.id] = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Actual Weight',
+              data: weights,
+              borderColor: '#dc2626',
+              backgroundColor: 'rgba(220, 38, 38, 0.1)',
+              borderWidth: 2,
+              fill: true,
+              tension: 0.2
+            },
+            {
+              label: 'Target Weight',
+              data: Array(labels.length).fill(batch.targetWeight),
+              borderColor: '#10b981',
+              borderDash: [4, 4],
+              borderWidth: 1.5,
+              pointRadius: 0,
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: { color: '#94a3b8', font: { size: 10 } }
+            }
+          },
+          scales: {
+            x: {
+              ticks: { color: '#64748b', font: { size: 9 } },
+              grid: { color: '#1e293b' }
+            },
+            y: {
+              ticks: { color: '#64748b', font: { size: 9 } },
+              grid: { color: '#1e293b' }
+            }
+          }
+        }
+      });
+    }
+
+    window.openWeighModal = function(batchId) {
+      state.activeModalBatchId = batchId;
+      const batch = state.batches.find(b => b.id === batchId);
+      document.getElementById('weighModalUnit').innerText = batch ? batch.unit : 'g';
+      document.getElementById('weighInputGrams').value = '';
+      document.getElementById('weighInputTemp').value = '';
+      document.getElementById('weighInputRH').value = '';
+      document.getElementById('weighInputNote').value = '';
+      document.getElementById('weighModal').classList.remove('hidden');
+    };
+
+    window.closeWeighModal = function() {
+      document.getElementById('weighModal').classList.add('hidden');
+    };
+
+    window.submitWeightLog = function() {
+      const grams = parseFloat(document.getElementById('weighInputGrams').value);
+      const temp = document.getElementById('weighInputTemp').value.trim();
+      const rh = document.getElementById('weighInputRH').value.trim();
+      const note = document.getElementById('weighInputNote').value.trim();
+
+      if (!grams || grams <= 0) {
+        alert("Please enter a valid weight measurement.");
+        return;
+      }
+
+      const batch = state.batches.find(b => b.id === state.activeModalBatchId);
+      if (batch) {
+        batch.logs.push({
+          date: new Date().toISOString().split('T')[0],
+          weight: grams,
+          temp: temp,
+          rh: rh,
+          note: note
+        });
+        saveLocally();
+        renderBatches();
+      }
+      closeWeighModal();
+    };
+
+    window.deleteBatch = function(batchId) {
+      if (confirm("Are you sure you want to delete this batch project?")) {
+        state.batches = state.batches.filter(b => b.id !== batchId);
+        saveLocally();
+        renderBatches();
+      }
+    };
+
+    function renderRecipes() {
+      const grid = document.getElementById('recipeGrid');
+      grid.innerHTML = state.recipes.map(recipe => `
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-5 shadow-lg flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/80 px-2.5 py-0.5 rounded border border-emerald-800/60">${recipe.category}</span>
+              <span class="text-xs text-slate-400 font-mono font-semibold"><i class="fa-solid fa-bullseye text-red-400 mr-1"></i>${recipe.targetLoss}% Target Loss</span>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-3">${recipe.name}</h3>
+
+            <div class="space-y-1.5 border-t border-slate-800 pt-3">
+              ${recipe.ingredients.map(ing => `
+                <div class="flex justify-between text-xs">
+                  <span class="text-slate-300 font-medium">${ing.name}</span>
+                  <span class="font-mono text-slate-400 font-semibold">${ing.pct}%</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="pt-4 mt-4 border-t border-slate-800/60 flex items-center space-x-2">
+            <button onclick="useRecipeForCalc('${recipe.id}')" class="w-full py-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-200 hover:text-white font-semibold text-xs flex items-center justify-center space-x-2 transition-all">
+              <i class="fa-solid fa-calculator text-amber-400"></i>
+              <span>Use in Calculator</span>
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    window.useRecipeForCalc = function(recipeId) {
+      window.switchTab('calculator');
+      document.getElementById('calcRecipeSelect').value = recipeId;
+      calculateCure();
+    };
+
+    window.openRecipeModal = function() {
+      document.getElementById('newRecName').value = '';
+      document.getElementById('newRecTargetLoss').value = 35;
+      const list = document.getElementById('newRecIngredientsList');
+      list.innerHTML = '';
+      addIngredientRow("Sea Salt / Kosher Salt", 2.8);
+      addIngredientRow("Cure #2 (Prague Powder #2)", 0.25);
+      addIngredientRow("Black Pepper", 0.5);
+      document.getElementById('recipeModal').classList.remove('hidden');
+    };
+
+    window.closeRecipeModal = function() {
+      document.getElementById('recipeModal').classList.add('hidden');
+    };
+
+    window.addIngredientRow = function(name = '', pct = '') {
+      const list = document.getElementById('newRecIngredientsList');
+      const div = document.createElement('div');
+      div.className = "flex items-center space-x-2";
+      div.innerHTML = `
+        <input type="text" placeholder="Ingredient Name" value="${name}" class="ing-name flex-grow bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-red-500">
+        <input type="number" step="0.01" placeholder="%" value="${pct}" class="ing-pct w-20 bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-red-500">
+        <button type="button" onclick="this.parentElement.remove()" class="text-slate-500 hover:text-red-400 p-1">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      `;
+      list.appendChild(div);
+    };
+
+    window.saveNewRecipe = function() {
+      const name = document.getElementById('newRecName').value.trim();
+      const category = document.getElementById('newRecCategory').value;
+      const targetLoss = parseFloat(document.getElementById('newRecTargetLoss').value);
+
+      if (!name) {
+        alert("Please enter a recipe name.");
+        return;
+      }
+
+      const ingRows = document.querySelectorAll('#newRecIngredientsList > div');
+      const ingredients = [];
+      ingRows.forEach(row => {
+        const ingName = row.querySelector('.ing-name').value.trim();
+        const ingPct = parseFloat(row.querySelector('.ing-pct').value);
+        if (ingName && !isNaN(ingPct)) {
+          ingredients.push({ name: ingName, pct: ingPct });
+        }
+      });
+
+      if (ingredients.length === 0) {
+        alert("Please add at least one ingredient.");
+        return;
+      }
+
+      const newRec = {
+        id: "rec-" + Date.now(),
+        name: name,
+        category: category,
+        targetLoss: targetLoss || 35,
+        ingredients: ingredients
+      };
+
+      state.recipes.push(newRec);
+      saveLocally();
+      renderRecipes();
+      populateCalcDropdown();
+      closeRecipeModal();
+    };
+
+    function loadFirebaseConfigForm() {
+      if (!state.firebaseConfig) return;
+      document.getElementById('cfg_apiKey').value = state.firebaseConfig.apiKey || '';
+      document.getElementById('cfg_authDomain').value = state.firebaseConfig.authDomain || '';
+      document.getElementById('cfg_projectId').value = state.firebaseConfig.projectId || '';
+      document.getElementById('cfg_storageBucket').value = state.firebaseConfig.storageBucket || '';
+      document.getElementById('cfg_messagingSenderId').value = state.firebaseConfig.messagingSenderId || '';
+      document.getElementById('cfg_appId').value = state.firebaseConfig.appId || '';
+    }
+
+    window.saveAndConnectFirebase = function() {
+      const cfg = {
+        apiKey: document.getElementById('cfg_apiKey').value.trim(),
+        authDomain: document.getElementById('cfg_authDomain').value.trim(),
+        projectId: document.getElementById('cfg_projectId').value.trim(),
+        storageBucket: document.getElementById('cfg_storageBucket').value.trim(),
+        messagingSenderId: document.getElementById('cfg_messagingSenderId').value.trim(),
+        appId: document.getElementById('cfg_appId').value.trim()
+      };
+
+      if (!cfg.apiKey || !cfg.projectId) {
+        alert("Please enter at least an API Key and Project ID to connect.");
+        return;
+      }
+
+      state.firebaseConfig = cfg;
+      localStorage.setItem('curecraft_firebase_cfg', JSON.stringify(cfg));
+      initFirebaseIfConfigured();
+    };
+
+    window.clearFirebaseConfig = function() {
+      state.firebaseConfig = null;
+      localStorage.removeItem('curecraft_firebase_cfg');
+      document.getElementById('cfg_apiKey').value = '';
+      document.getElementById('cfg_authDomain').value = '';
+      document.getElementById('cfg_projectId').value = '';
+      document.getElementById('cfg_storageBucket').value = '';
+      document.getElementById('cfg_messagingSenderId').value = '';
+      document.getElementById('cfg_appId').value = '';
+      updateSyncStatusUI(false, "Local Storage");
+    };
+
+    window.exportJSONBackup = function() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
+      const anchor = document.createElement('a');
+      anchor.setAttribute("href", dataStr);
+      anchor.setAttribute("download", `curecraft_backup_${new Date().toISOString().split('T')[0]}.json`);
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+    };
+
+    window.importJSONBackup = function(event) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (parsed.recipes) state.recipes = parsed.recipes;
+          if (parsed.batches) state.batches = parsed.batches;
+          saveLocally();
+          renderAll();
+          alert("Backup restored successfully!");
+        } catch (err) {
+          alert("Invalid backup JSON format.");
+        }
+      };
+      reader.readAsText(event.target.files[0]);
+    };
+    
+    function renderAll() {
+      renderRecipes();
+      populateCalcDropdown();
+      renderBatches();
+      loadFirebaseConfigForm();
+    }
+
+    window.onload = function() {
+      renderAll();
+      initFirebaseIfConfigured();
+    };
+  </script>
+</body>
+</html>
+
+
