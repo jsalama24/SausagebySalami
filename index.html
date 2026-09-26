@@ -1,1080 +1,234 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>CureCraft - Meat Curing & Fermentation Tracker</title>
-  
-  <!-- PWA & Mobile Meta Tags -->
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="CureCraft" />
-  <meta name="theme-color" content="#1e293b" />
-  
-  <!-- Tailwind CSS & Lucide Icons -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CureCraft - Curing & Fermentation Workspace</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
-  <style>
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    body { -webkit-tap-highlight-color: transparent; }
-  </style>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            slate: {
+              750: '#1e293b',
+              850: '#0f172a',
+              900: '#0f172a',
+            }
+          }
+        }
+      }
+    }
+  </script>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans pb-20 md:pb-6">
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans antialiased">
 
-  <!-- Header -->
-  <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-30 shadow-lg">
-    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="p-2 bg-rose-600 rounded-xl text-white shadow-md shadow-rose-900/40">
-          <i data-lucide="beef" class="w-6 h-6"></i>
+  <!-- Navigation / Header -->
+  <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center space-x-3">
+          <div class="p-2 bg-rose-600/20 text-rose-500 rounded-lg border border-rose-500/30">
+            <i data-lucide="flame" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+              CureCraft
+              <span class="text-xs font-semibold px-2 py-0.5 rounded bg-rose-600/20 text-rose-400 border border-rose-500/30">v2.4</span>
+            </h1>
+            <p class="text-xs text-slate-400">Precision Curing & Fermentation</p>
+          </div>
         </div>
-        <div>
-          <h1 class="font-bold text-lg leading-tight tracking-wide text-white">CureCraft</h1>
-          <p class="text-xs text-slate-400">Meat Curing & Fermentation Suite</p>
-        </div>
-      </div>
-      <div id="sync-status-badge" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-700/80 border border-slate-600 text-xs font-medium text-slate-300">
-        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" id="status-dot"></span>
-        <span id="status-text">Room: brombis</span>
-      </div>
-    </div>
 
-    <!-- Desktop Navigation Tabs -->
-    <div class="hidden md:flex max-w-5xl mx-auto px-4 gap-2 border-t border-slate-700/60 pt-2">
-      <button onclick="switchTab('recipes')" id="tab-btn-recipes" class="tab-btn px-4 py-2 text-sm font-medium rounded-t-lg transition flex items-center gap-2 bg-slate-700 text-rose-400 border-b-2 border-rose-500">
-        <i data-lucide="book-open" class="w-4 h-4"></i> Recipes
-      </button>
-      <button onclick="switchTab('calc')" id="tab-btn-calc" class="tab-btn px-4 py-2 text-sm font-medium rounded-t-lg transition flex items-center gap-2 text-slate-400 hover:text-slate-200">
-        <i data-lucide="calculator" class="w-4 h-4"></i> Calculator
-      </button>
-      <button onclick="switchTab('tracker')" id="tab-btn-tracker" class="tab-btn px-4 py-2 text-sm font-medium rounded-t-lg transition flex items-center gap-2 text-slate-400 hover:text-slate-200">
-        <i data-lucide="activity" class="w-4 h-4"></i> Fermentation & Drying Tracker
-      </button>
-      <button onclick="switchTab('sync')" id="tab-btn-sync" class="tab-btn px-4 py-2 text-sm font-medium rounded-t-lg transition flex items-center gap-2 text-slate-400 hover:text-slate-200">
-        <i data-lucide="cloud" class="w-4 h-4"></i> Cloud Sync & Diagnostics
-      </button>
+        <!-- Desktop Navigation Tabs -->
+        <nav class="hidden md:flex space-x-2">
+          <button onclick="switchTab('recipes')" id="tab-btn-recipes" class="px-3 py-2 rounded-md text-xs font-semibold uppercase tracking-wider bg-rose-600 text-white shadow-sm flex items-center gap-2">
+            <i data-lucide="book-open" class="w-4 h-4"></i> Recipes
+          </button>
+          <button onclick="switchTab('calculator')" id="tab-btn-calculator" class="px-3 py-2 rounded-md text-xs font-semibold uppercase tracking-wider text-slate-300 hover:text-white hover:bg-slate-800 flex items-center gap-2">
+            <i data-lucide="calculator" class="w-4 h-4"></i> Calculator
+          </button>
+          <button onclick="switchTab('batches')" id="tab-btn-batches" class="px-3 py-2 rounded-md text-xs font-semibold uppercase tracking-wider text-slate-300 hover:text-white hover:bg-slate-800 flex items-center gap-2">
+            <i data-lucide="scale" class="w-4 h-4"></i> Drying Logs
+          </button>
+          <button onclick="switchTab('sync')" id="tab-btn-sync" class="px-3 py-2 rounded-md text-xs font-semibold uppercase tracking-wider text-slate-300 hover:text-white hover:bg-slate-800 flex items-center gap-2">
+            <i data-lucide="cloud" class="w-4 h-4"></i> Cloud Sync
+          </button>
+        </nav>
+      </div>
     </div>
   </header>
 
-  <!-- Main Content Container -->
-  <main class="flex-1 max-w-5xl w-full mx-auto p-4 md:p-6 space-y-6">
+  <!-- Main Workspace -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
 
-    <!-- ================= RECIPES TAB ================= -->
-    <section id="tab-recipes" class="space-y-6">
-      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-800/80 p-4 rounded-xl border border-slate-700">
-        <div>
-          <h2 class="text-xl font-bold text-white flex items-center gap-2">
-            <i data-lucide="book-open" class="text-rose-400"></i> Recipe Library
-          </h2>
-          <p class="text-xs text-slate-400">Manage formulation percentages, fixed amounts, and custom protein ratios.</p>
-        </div>
-        <button onclick="openRecipeModal()" class="w-full sm:w-auto px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-medium text-sm transition flex items-center justify-center gap-2 shadow-md shadow-rose-900/30">
-          <i data-lucide="plus" class="w-4 h-4"></i> Add New Recipe
+    <!-- Recipes View -->
+    <section id="view-recipes" class="space-y-6">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+          <i data-lucide="book-open" class="w-5 h-5 text-rose-500"></i> Curing Recipes
+        </h2>
+        <button class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-sm font-semibold transition flex items-center gap-2 shadow-lg shadow-rose-900/20">
+          <i data-lucide="plus" class="w-4 h-4"></i> New Recipe
         </button>
       </div>
 
-      <div id="recipe-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <!-- Recipe Cards Injected by JS -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Recipe Card Example -->
+        <div class="bg-slate-800 rounded-xl border border-slate-700 p-5 space-y-4 hover:border-slate-600 transition">
+          <div class="flex justify-between items-start">
+            <div>
+              <span class="inline-block px-2 py-0.5 text-xs font-semibold text-rose-400 bg-rose-950/60 border border-rose-800 rounded mb-2">Baker's % (Scaled)</span>
+              <h3 class="text-lg font-bold text-white">Traditional Salumi</h3>
+            </div>
+            <button class="text-slate-400 hover:text-rose-400"><i data-lucide="more-vertical" class="w-5 h-5"></i></button>
+          </div>
+          <p class="text-xs text-slate-400 line-clamp-2">Classic Italian dry-cured pork sausage with black pepper, garlic, and red wine.</p>
+          <div class="pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-300">
+            <span class="flex items-center gap-1 text-emerald-400"><i data-lucide="target" class="w-3.5 h-3.5"></i> Target: 35% Loss</span>
+            <button class="text-rose-400 hover:text-rose-300 font-medium flex items-center gap-1">Scale Batch <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i></button>
+          </div>
+        </div>
+
+        <div class="bg-slate-800 rounded-xl border border-slate-700 p-5 space-y-4 hover:border-slate-600 transition">
+          <div class="flex justify-between items-start">
+            <div>
+              <span class="inline-block px-2 py-0.5 text-xs font-semibold text-amber-400 bg-amber-950/60 border border-amber-800 rounded mb-2">Fixed Recipe</span>
+              <h3 class="text-lg font-bold text-white">Herb Cured Pork Loin</h3>
+            </div>
+            <button class="text-slate-400 hover:text-rose-400"><i data-lucide="more-vertical" class="w-5 h-5"></i></button>
+          </div>
+          <p class="text-xs text-slate-400 line-clamp-2">Fixed measure dry rub with fresh rosemary, thyme, juniper, and sea salt.</p>
+          <div class="pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-300">
+            <span class="flex items-center gap-1 text-emerald-400"><i data-lucide="target" class="w-3.5 h-3.5"></i> Target: 40% Loss</span>
+            <button class="text-rose-400 hover:text-rose-300 font-medium flex items-center gap-1">Scale Batch <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i></button>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- ================= CALCULATOR TAB ================= -->
-    <section id="tab-calc" class="hidden space-y-6">
-      <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 space-y-4">
+    <!-- Batch Calculator View (Hidden by default) -->
+    <section id="view-calculator" class="hidden space-y-6">
+      <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 space-y-6">
         <h2 class="text-xl font-bold text-white flex items-center gap-2">
-          <i data-lucide="calculator" class="text-rose-400"></i> Batch Scaling Calculator
+          <i data-lucide="calculator" class="w-5 h-5 text-rose-500"></i> Batch Scaling Calculator
         </h2>
-        <p class="text-xs text-slate-400">Select a recipe from your library and input your target meat weight.</p>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Select Recipe</label>
-            <select id="calc-recipe-select" onchange="calculateBatch()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-rose-500 text-sm">
-              <!-- Options populated by JS -->
+            <label class="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Total Target Meat Weight (g)</label>
+            <input type="number" value="2500" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-rose-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Calculation Mode</label>
+            <select class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-rose-500 focus:outline-none">
+              <option>Baker's Percentage (%)</option>
+              <option>Fixed Recipe (Static Amounts)</option>
             </select>
           </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Total Target Meat Weight (Grams)</label>
-            <div class="relative">
-              <input type="number" id="calc-green-weight" value="1000" oninput="calculateBatch()" placeholder="e.g. 1500" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-rose-500 text-sm pl-3 pr-12" />
-              <span class="absolute right-3 top-2 text-xs font-bold text-slate-500">g</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Calculated Ingredients Result -->
-      <div id="calc-results-container" class="bg-slate-800/90 rounded-xl border border-slate-700 overflow-hidden shadow-lg">
-        <div class="bg-slate-700/60 px-5 py-3 border-b border-slate-700 flex justify-between items-center">
-          <h3 id="calc-recipe-title" class="font-bold text-slate-100 text-base">Select a Recipe Above</h3>
-          <button onclick="createBatchFromCalc()" id="btn-start-batch" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition">
-            <i data-lucide="play" class="w-3.5 h-3.5"></i> Start Batch Tracker
-          </button>
-        </div>
-
-        <div class="p-5 space-y-6">
-          <!-- Meat Blend Breakdown -->
-          <div>
-            <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Meat & Fat Composition Breakdown</h4>
-            <div id="calc-meat-breakdown" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <!-- Meat items injected by JS -->
-            </div>
-          </div>
-
-          <!-- Ingredients List -->
-          <div>
-            <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Ingredients & Quantities</h4>
-            <div class="overflow-x-auto">
-              <table class="w-full text-left text-sm text-slate-300">
-                <thead class="bg-slate-900/60 text-slate-400 text-xs uppercase">
-                  <tr>
-                    <th class="px-4 py-2.5 rounded-l-lg">Ingredient</th>
-                    <th id="calc-col-pct" class="px-4 py-2.5">Baker's %</th>
-                    <th class="px-4 py-2.5 text-right rounded-r-lg">Required Weight / Quantity</th>
-                  </tr>
-                </thead>
-                <tbody id="calc-ingredients-body" class="divide-y divide-slate-700/50">
-                  <!-- Rows injected by JS -->
-                </tbody>
-              </table>
-            </div>
-          </div>
         </div>
       </div>
     </section>
 
-    <!-- ================= TRACKER TAB ================= -->
-    <section id="tab-tracker" class="hidden space-y-6">
-      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-800/80 p-4 rounded-xl border border-slate-700">
-        <div>
-          <h2 class="text-xl font-bold text-white flex items-center gap-2">
-            <i data-lucide="activity" class="text-rose-400"></i> Fermentation & Drying Tracker
-          </h2>
-          <p class="text-xs text-slate-400">Log weigh-ins, view visual drying graphs, and monitor cure progression.</p>
-        </div>
-        <button onclick="openNewProjectModal()" class="w-full sm:w-auto px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-medium text-sm transition flex items-center justify-center gap-2 shadow-md shadow-rose-900/30">
-          <i data-lucide="plus" class="w-4 h-4"></i> Start New Project Batch
-        </button>
-      </div>
-
-      <!-- Active Projects Grid -->
-      <div id="projects-list" class="space-y-6">
-        <!-- Active Projects injected by JS -->
-      </div>
-    </section>
-
-    <!-- ================= CLOUD SYNC TAB ================= -->
-    <section id="tab-sync" class="hidden space-y-6">
-      <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 space-y-4">
+    <!-- Drying Log View (Hidden by default) -->
+    <section id="view-batches" class="hidden space-y-6">
+      <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 space-y-4">
         <h2 class="text-xl font-bold text-white flex items-center gap-2">
-          <i data-lucide="cloud" class="text-rose-400"></i> Cloud Synchronization & Diagnostics
+          <i data-lucide="scale" class="w-5 h-5 text-rose-500"></i> Fermentation & Moisture Loss Curve
         </h2>
-        <p class="text-xs text-slate-400 leading-relaxed">
-          Sync your recipes and active batches across your <strong>iPhone and Desktop</strong> using a shared room code.
-        </p>
-
-        <!-- Room Code Sync Method -->
-        <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 space-y-3">
-          <h3 class="text-sm font-bold text-rose-400 flex items-center gap-2">
-            <i data-lucide="key" class="w-4 h-4"></i> Shared Sync Room Code
-          </h3>
-          <p class="text-xs text-slate-400">Type any room name (e.g. <code class="bg-slate-800 text-amber-300 px-1.5 py-0.5 rounded">brombis</code>). Use this exact code on both your iPhone and Desktop!</p>
-          
-          <div class="flex gap-2">
-            <input type="text" id="sync-room-code" placeholder="Enter custom room code" value="brombis" class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-rose-500" />
-            <button onclick="saveRoomCode()" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-sm font-semibold transition">Connect Room</button>
-          </div>
+        <div class="h-64">
+          <canvas id="dryingChart"></canvas>
         </div>
+      </div>
+    </section>
 
-        <!-- Connection Test Engine -->
-        <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 space-y-3">
-          <div class="flex justify-between items-center">
-            <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
-              <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i> Firebase Connection Diagnostics
-            </h3>
-            <button onclick="runFirebaseDiagnostics()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg text-xs font-semibold transition">
-              Test Firebase Connection
-            </button>
-          </div>
-          <div id="diag-console" class="bg-slate-950 p-3 rounded-lg font-mono text-xs text-slate-400 h-28 overflow-y-auto space-y-1 border border-slate-800">
-            <div>[System] Diagnostics tool ready. Connected to sync room: brombis</div>
-          </div>
-        </div>
-
-        <!-- Manual Backup / Restore -->
-        <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 space-y-3 pt-4">
-          <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
-            <i data-lucide="download" class="w-4 h-4 text-emerald-400"></i> Manual Backup & Restore
-          </h3>
-          <div class="flex flex-wrap gap-3">
-            <button onclick="exportDataJSON()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg text-xs font-semibold flex items-center gap-2">
-              <i data-lucide="download" class="w-4 h-4"></i> Export Data Backup (.json)
-            </button>
-            <label class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg text-xs font-semibold flex items-center gap-2 cursor-pointer">
-              <i data-lucide="upload" class="w-4 h-4"></i> Import Data Backup
-              <input type="file" id="import-json-file" accept=".json" onchange="importDataJSON(event)" class="hidden" />
-            </label>
-          </div>
+    <!-- Sync View (Hidden by default) -->
+    <section id="view-sync" class="hidden space-y-6">
+      <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 space-y-4">
+        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+          <i data-lucide="cloud" class="w-5 h-5 text-rose-500"></i> Cloud Synchronization & Backup
+        </h2>
+        <p class="text-sm text-slate-400">Enter a room code to sync curing recipes and drying logs across your desktop and mobile devices.</p>
+        <div class="flex gap-2 max-w-md">
+          <input type="text" placeholder="Enter Room Code (e.g. brombis)" class="flex-1 bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-rose-500 focus:outline-none">
+          <button class="px-5 py-3 bg-rose-600 hover:bg-rose-500 text-white font-semibold rounded-lg">Sync</button>
         </div>
       </div>
     </section>
 
   </main>
 
-  <!-- Mobile Bottom Navigation Bar -->
-  <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-slate-800/95 backdrop-blur border-t border-slate-700/80 z-40 px-2 py-1 flex justify-around items-center">
-    <button onclick="switchTab('recipes')" id="mobile-tab-recipes" class="flex flex-col items-center py-1 px-3 text-rose-400">
-      <i data-lucide="book-open" class="w-5 h-5"></i>
-      <span class="text-[10px] font-medium mt-0.5">Recipes</span>
+  <!-- Mobile Navigation Bar -->
+  <nav class="md:hidden sticky bottom-0 bg-slate-900 border-t border-slate-800 px-4 py-2 flex justify-around">
+    <button onclick="switchTab('recipes')" class="flex flex-col items-center gap-1 text-rose-400 text-xs font-semibold">
+      <i data-lucide="book-open" class="w-5 h-5"></i> Recipes
     </button>
-    <button onclick="switchTab('calc')" id="mobile-tab-calc" class="flex flex-col items-center py-1 px-3 text-slate-400">
-      <i data-lucide="calculator" class="w-5 h-5"></i>
-      <span class="text-[10px] font-medium mt-0.5">Calculator</span>
+    <button onclick="switchTab('calculator')" class="flex flex-col items-center gap-1 text-slate-400 hover:text-white text-xs font-semibold">
+      <i data-lucide="calculator" class="w-5 h-5"></i> Calc
     </button>
-    <button onclick="switchTab('tracker')" id="mobile-tab-tracker" class="flex flex-col items-center py-1 px-3 text-slate-400">
-      <i data-lucide="activity" class="w-5 h-5"></i>
-      <span class="text-[10px] font-medium mt-0.5">Tracker</span>
+    <button onclick="switchTab('batches')" class="flex flex-col items-center gap-1 text-slate-400 hover:text-white text-xs font-semibold">
+      <i data-lucide="scale" class="w-5 h-5"></i> Drying
     </button>
-    <button onclick="switchTab('sync')" id="mobile-tab-sync" class="flex flex-col items-center py-1 px-3 text-slate-400">
-      <i data-lucide="cloud" class="w-5 h-5"></i>
-      <span class="text-[10px] font-medium mt-0.5">Cloud Sync</span>
+    <button onclick="switchTab('sync')" class="flex flex-col items-center gap-1 text-slate-400 hover:text-white text-xs font-semibold">
+      <i data-lucide="cloud" class="w-5 h-5"></i> Sync
     </button>
   </nav>
 
-  <!-- ================= RECIPE MODAL ================= -->
-  <div id="recipe-modal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-lg w-full p-6 space-y-5 my-8 shadow-2xl">
-      <div class="flex justify-between items-center border-b border-slate-700 pb-3">
-        <h3 id="recipe-modal-title" class="text-lg font-bold text-white">Create New Recipe</h3>
-        <button onclick="closeRecipeModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
-      </div>
-
-      <form id="recipe-form" onsubmit="saveRecipe(event)" class="space-y-4">
-        <input type="hidden" id="recipe-edit-id" value="" />
-        
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Recipe Name</label>
-          <input type="text" id="recipe-name" required placeholder="e.g. Salami Milano, Culatello, Soppressata" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-rose-500" />
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Description / Notes</label>
-          <input type="text" id="recipe-description" placeholder="e.g. Coarsely ground pork with back fat cubes" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-rose-500" />
-        </div>
-
-        <!-- Recipe Mode Toggle: Baker's % vs Fixed Amount -->
-        <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700/80 space-y-2">
-          <label class="block text-xs font-semibold text-rose-400 uppercase tracking-wider">Calculation Mode</label>
-          <div class="grid grid-cols-2 gap-2">
-            <button type="button" id="mode-btn-bakers" onclick="setRecipeMode('bakers')" class="py-1.5 px-3 rounded-lg text-xs font-semibold border transition bg-rose-600 text-white border-rose-500">
-              Baker's % (Scaled)
-            </button>
-            <button type="button" id="mode-btn-fixed" onclick="setRecipeMode('fixed')" class="py-1.5 px-3 rounded-lg text-xs font-semibold border transition bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200">
-              Fixed Recipe (Static Amounts)
-            </button>
-          </div>
-          <input type="hidden" id="recipe-mode" value="bakers" />
-        </div>
-
-        <!-- Meat & Cut Composition Blend (Sum to 100%) -->
-        <div class="space-y-2 pt-2 border-t border-slate-700">
-          <div class="flex justify-between items-center">
-            <label class="block text-xs font-semibold text-rose-400 uppercase tracking-wider">Meat & Cut Blend (Target: 100%)</label>
-            <span id="meat-ratio-total-badge" class="text-xs font-bold px-2 py-0.5 rounded bg-emerald-900/60 text-emerald-300 border border-emerald-700">Total: 100%</span>
-          </div>
-
-          <div id="meat-rows-container" class="space-y-2">
-            <!-- Dynamic Meat Rows added by JS -->
-          </div>
-
-          <button type="button" onclick="addMeatRow()" class="text-xs font-semibold text-rose-400 hover:text-rose-300 flex items-center gap-1 pt-1">
-            <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Add Meat / Fat Component
-          </button>
-        </div>
-
-        <!-- Ingredients List -->
-        <div class="space-y-2 pt-2 border-t border-slate-700">
-          <div class="flex justify-between items-center">
-            <label id="lbl-ingredients-header" class="block text-xs font-semibold text-rose-400 uppercase tracking-wider">Cure Ingredients (Baker's % based on total meat)</label>
-          </div>
-
-          <div id="ingredient-rows-container" class="space-y-2">
-            <!-- Dynamic Ingredient Rows added by JS -->
-          </div>
-
-          <button type="button" onclick="addIngredientRow()" class="text-xs font-semibold text-rose-400 hover:text-rose-300 flex items-center gap-1 pt-1">
-            <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Add Ingredient Row
-          </button>
-        </div>
-
-        <div class="pt-4 flex justify-end gap-3 border-t border-slate-700">
-          <button type="button" onclick="closeRecipeModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg text-sm font-semibold">Cancel</button>
-          <button type="submit" class="px-5 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-sm font-semibold shadow-md">Save Recipe</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- ================= LOG WEIGH-IN MODAL ================= -->
-  <div id="weigh-modal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
-      <div class="flex justify-between items-center border-b border-slate-700 pb-3">
-        <h3 class="text-base font-bold text-white">Log Weigh-In Entry</h3>
-        <button onclick="closeWeighModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
-      </div>
-
-      <form id="weigh-form" onsubmit="saveWeighIn(event)" class="space-y-3">
-        <input type="hidden" id="weigh-project-id" value="" />
-        
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Current Weight (Grams)</label>
-          <input type="number" step="0.1" id="weigh-grams" required placeholder="e.g. 850" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-rose-500" />
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Notes / Observations</label>
-          <input type="text" id="weigh-notes" placeholder="e.g. Good white mold bloom, pH 5.1" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-rose-500" />
-        </div>
-
-        <div class="pt-2 flex justify-end gap-3">
-          <button type="button" onclick="closeWeighModal()" class="px-4 py-2 bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold">Cancel</button>
-          <button type="submit" class="px-4 py-2 bg-rose-600 text-white rounded-lg text-xs font-semibold shadow">Record Log</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Javascript Application Code -->
   <script>
-    // --- Initial Data Loaded from user JSON ---
-    let chartInstances = {};
+    // Lucide Icon initialization
+    lucide.createIcons();
 
-    let recipes = JSON.parse(localStorage.getItem('curecraft_recipes')) || [
-      {
-        id: "rec-1",
-        name: "Calabrian Soppressata",
-        description: "Coarsely ground pork with back fat cubes and red chili flake spice.",
-        isFixed: false,
-        blend: [
-          { animal: "Pork", cut: "Shoulder / Boston Butt", ratio: 80 },
-          { animal: "Pork", cut: "Back Fat", ratio: 20 }
-        ],
-        ingredients: [
-          { name: "Sea Salt", percentage: 2.75 },
-          { name: "Cure #2", percentage: 0.25 },
-          { name: "Dextrose", percentage: 0.3 },
-          { name: "Calabrian Chili Powder", percentage: 1.5 },
-          { name: "Black Pepper (Cracked)", percentage: 0.5 },
-          { name: "Starter Culture (B-LC-20)", percentage: 0.02 }
-        ]
-      },
-      {
-        id: "rec-2",
-        name: "Traditional Bresaola",
-        description: "Whole muscle cured eye of round with rosemary, juniper, and red wine.",
-        isFixed: false,
-        blend: [
-          { animal: "Beef", cut: "Leg / Round", ratio: 100 }
-        ],
-        ingredients: [
-          { name: "Kosher Salt", percentage: 3 },
-          { name: "Cure #2", percentage: 0.25 },
-          { name: "Black Pepper", percentage: 0.8 },
-          { name: "Crushed Juniper Berries", percentage: 0.4 },
-          { name: "Dried Rosemary", percentage: 0.2 }
-        ]
-      },
-      {
-        id: "rec-1790311011193",
-        name: "Calabrese Hot Sopressata Premade Spices",
-        description: "Used the premade mix from Stuffers",
-        isFixed: false,
-        blend: [
-          { animal: "Pork", cut: "Shoulder / Boston Butt", ratio: 80 },
-          { animal: "Pork", cut: "Back Fat", ratio: 20 }
-        ],
-        ingredients: [
-          { name: "Sea Salt", percentage: 2.75 },
-          { name: "Cure #2", percentage: 0.25 }
-        ]
-      },
-      {
-        id: "rec-1790372285377",
-        name: "OG Sausage Recipe (Texas Hot Links)",
-        description: "Liquid could be anything, beer is great",
-        isFixed: false,
-        blend: [
-          { animal: "Pork", cut: "Shoulder / Boston Butt", ratio: 100 }
-        ],
-        ingredients: [
-          { name: "Garlic Powder", percentage: 0.9 },
-          { name: "Mustard Powder", percentage: 0.9 },
-          { name: "Black Pepper", percentage: 0.67 },
-          { name: "Cayenne Peppper", percentage: 0.4 },
-          { name: "Paprika", percentage: 10 },
-          { name: "Salt", percentage: 1.75 },
-          { name: "Pink Curing Salt (Cure #1)", percentage: 0.25 },
-          { name: "Beer (Any Liquid)", percentage: 10 }
-        ]
-      },
-      {
-        id: "rec-1790372519555",
-        name: "Pepperoni",
-        description: "Beef used was Top Sirloin",
-        isFixed: false,
-        blend: [
-          { animal: "Pork", cut: "Shoulder / Boston Butt", ratio: 65 },
-          { animal: "Beef", cut: "Loin / Eye", ratio: 25 },
-          { animal: "Pork", cut: "Back Fat", ratio: 10 }
-        ],
-        ingredients: [
-          { name: "Salt", percentage: 2.3 },
-          { name: "Cure #1 (Pink Salt)", percentage: 0.25 },
-          { name: "Dextrose", percentage: 0.75 },
-          { name: "Black Pepper", percentage: 0.3 },
-          { name: "White Pepper", percentage: 0.1 },
-          { name: "Smoked Paprika", percentage: 1 },
-          { name: "Fennel Seed", percentage: 0.3 },
-          { name: "Cayenne Pepper", percentage: 0.5 }
-        ]
-      }
-    ];
-
-    let projects = JSON.parse(localStorage.getItem('curecraft_projects')) || [
-      {
-        id: "batch-1790379629280",
-        name: "Mid-size",
-        recipeId: "rec-1790311011193",
-        startWeight: 1045,
-        targetLossPct: 37,
-        startDate: "2026-09-04",
-        logs: [
-          { id: "log-1790379675414", date: "2026-09-13", weight: 890, notes: "Good amount of white mold growth" },
-          { id: "log-1790379699646", date: "2026-09-17", weight: 852, notes: "" },
-          { id: "log-1790379716579", date: "2026-09-24", weight: 802, notes: "" }
-        ]
-      },
-      {
-        id: "batch-1790379780616",
-        name: "Largest Size",
-        recipeId: "rec-1790311011193",
-        startWeight: 1366,
-        targetLossPct: 37,
-        startDate: "2026-09-04",
-        logs: [
-          { id: "log-1790379802448", date: "2026-09-13", weight: 1170, notes: "" },
-          { id: "log-1790379827356", date: "2026-09-17", weight: 1122, notes: "" },
-          { id: "log-1790379845929", date: "2026-09-24", weight: 1061, notes: "" }
-        ]
-      },
-      {
-        id: "batch-1790380073316",
-        name: "Smallest One",
-        recipeId: "rec-1790311011193",
-        startWeight: 573,
-        targetLossPct: 37,
-        startDate: "2026-09-04",
-        logs: [
-          { id: "log-1790380092022", date: "2026-09-13", weight: 459, notes: "" },
-          { id: "log-1790380106887", date: "2026-09-17", weight: 435, notes: "" },
-          { id: "log-1790380119758", date: "2026-09-24", weight: 402, notes: "" }
-        ]
-      }
-    ];
-
-    // --- Tab Switching ---
+    // Tab Navigation Logic
     function switchTab(tabId) {
-      ['recipes', 'calc', 'tracker', 'sync'].forEach(t => {
-        document.getElementById(`tab-${t}`).classList.add('hidden');
-        const btn = document.getElementById(`tab-btn-${t}`);
-        const mBtn = document.getElementById(`mobile-tab-${t}`);
-        
-        if (btn) btn.className = 'tab-btn px-4 py-2 text-sm font-medium rounded-t-lg transition flex items-center gap-2 text-slate-400 hover:text-slate-200';
-        if (mBtn) mBtn.className = 'flex flex-col items-center py-1 px-3 text-slate-400';
-      });
-
-      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-      const activeBtn = document.getElementById(`tab-btn-${tabId}`);
-      const activeMobileBtn = document.getElementById(`mobile-tab-${tabId}`);
-
-      if (activeBtn) activeBtn.className = 'tab-btn px-4 py-2 text-sm font-medium rounded-t-lg transition flex items-center gap-2 bg-slate-700 text-rose-400 border-b-2 border-rose-500';
-      if (activeMobileBtn) activeMobileBtn.className = 'flex flex-col items-center py-1 px-3 text-rose-400';
-
-      if (tabId === 'calc') populateCalcDropdown();
-      if (tabId === 'tracker') renderProjects();
-    }
-
-    // --- Render Recipe Cards ---
-    function renderRecipes() {
-      const container = document.getElementById('recipe-list');
-      container.innerHTML = '';
-
-      recipes.forEach(rec => {
-        const meatBreakdownText = rec.blend ? rec.blend.map(m => `${m.ratio}% ${m.animal} (${m.cut})`).join(', ') : 'No meat blend specified';
-        const isFixed = rec.isFixed || false;
-
-        const card = document.createElement('div');
-        card.className = 'bg-slate-800 rounded-xl border border-slate-700 p-5 space-y-4 shadow-md flex flex-col justify-between';
-        card.innerHTML = `
-          <div class="space-y-3">
-            <div class="flex justify-between items-start gap-2">
-              <div>
-                <div class="flex items-center gap-2">
-                  <span class="text-[10px] uppercase font-bold ${isFixed ? 'text-amber-400 bg-amber-950/60 border-amber-800/60' : 'text-rose-400 bg-rose-950/60 border-rose-800/60'} border px-2 py-0.5 rounded-full">
-                    ${isFixed ? 'Fixed Amount Recipe' : 'Baker\'s % Scaled'}
-                  </span>
-                </div>
-                <h3 class="font-bold text-lg text-white mt-1">${rec.name}</h3>
-                ${rec.description ? `<p class="text-xs text-slate-400 italic">${rec.description}</p>` : ''}
-              </div>
-              <div class="flex gap-1">
-                <button onclick="editRecipe('${rec.id}')" class="p-1.5 text-slate-400 hover:text-slate-200"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
-                <button onclick="deleteRecipe('${rec.id}')" class="p-1.5 text-slate-400 hover:text-rose-400"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-              </div>
-            </div>
-
-            <div class="bg-slate-900/70 p-2.5 rounded-lg border border-slate-700/60 text-xs text-slate-300">
-              <span class="font-semibold text-slate-400 block mb-0.5">Protein Composition:</span>
-              ${meatBreakdownText}
-            </div>
-
-            <div class="space-y-1">
-              <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">${isFixed ? 'Fixed Ingredients:' : 'Cure Formulation (Baker\'s %):'}</span>
-              <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-300 pt-1">
-                ${rec.ingredients.map(ing => `
-                  <div class="flex justify-between border-b border-slate-700/40 py-0.5">
-                    <span>${ing.name}</span> 
-                    <span class="font-bold ${isFixed ? 'text-amber-300' : 'text-rose-300'}">${isFixed ? (ing.fixedAmount || ing.amount || '1 unit') : (ing.percentage !== undefined ? ing.percentage + '%' : ing.pct + '%')}</span>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          </div>
-
-          <div class="pt-3 border-t border-slate-700 flex gap-2">
-            <button onclick="useInCalculator('${rec.id}')" class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-rose-300 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition">
-              <i data-lucide="calculator" class="w-3.5 h-3.5"></i> Load in Calculator
-            </button>
-          </div>
-        `;
-        container.appendChild(card);
-      });
-      lucide.createIcons();
-    }
-
-    // --- Dynamic Recipe Modal ---
-    function openRecipeModal(editId = null) {
-      document.getElementById('recipe-form').reset();
-      document.getElementById('meat-rows-container').innerHTML = '';
-      document.getElementById('ingredient-rows-container').innerHTML = '';
-      document.getElementById('recipe-edit-id').value = editId || '';
-
-      if (editId) {
-        const rec = recipes.find(r => r.id === editId);
-        document.getElementById('recipe-modal-title').innerText = 'Edit Recipe';
-        document.getElementById('recipe-name').value = rec.name;
-        document.getElementById('recipe-description').value = rec.description || '';
-        
-        setRecipeMode(rec.isFixed ? 'fixed' : 'bakers');
-        
-        (rec.blend || []).forEach(m => addMeatRow(m.animal, m.cut, m.ratio));
-        (rec.ingredients || []).forEach(i => addIngredientRow(i.name, i.percentage !== undefined ? i.percentage : i.pct, i.fixedAmount));
-      } else {
-        document.getElementById('recipe-modal-title').innerText = 'Create New Recipe';
-        setRecipeMode('bakers');
-        addMeatRow('Pork', 'Shoulder / Boston Butt', 80);
-        addMeatRow('Pork', 'Back Fat', 20);
-        addIngredientRow('Sea Salt', 2.75);
-        addIngredientRow('Cure #2', 0.25);
-      }
-
-      updateMeatRatioTotal();
-      document.getElementById('recipe-modal').classList.remove('hidden');
-    }
-
-    function setRecipeMode(mode) {
-      document.getElementById('recipe-mode').value = mode;
-      const btnBakers = document.getElementById('mode-btn-bakers');
-      const btnFixed = document.getElementById('mode-btn-fixed');
-      const header = document.getElementById('lbl-ingredients-header');
-
-      if (mode === 'bakers') {
-        btnBakers.className = 'py-1.5 px-3 rounded-lg text-xs font-semibold border transition bg-rose-600 text-white border-rose-500';
-        btnFixed.className = 'py-1.5 px-3 rounded-lg text-xs font-semibold border transition bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200';
-        header.innerText = "Cure Ingredients (Baker's % based on total meat)";
-      } else {
-        btnFixed.className = 'py-1.5 px-3 rounded-lg text-xs font-semibold border transition bg-amber-600 text-white border-amber-500';
-        btnBakers.className = 'py-1.5 px-3 rounded-lg text-xs font-semibold border transition bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200';
-        header.innerText = "Fixed Ingredients (Static Amounts/Weights)";
-      }
-    }
-
-    function closeRecipeModal() {
-      document.getElementById('recipe-modal').classList.add('hidden');
-    }
-
-    function addMeatRow(animal = 'Pork', cut = 'Shoulder / Boston Butt', ratio = 50) {
-      const container = document.getElementById('meat-rows-container');
-      const row = document.createElement('div');
-      row.className = 'flex gap-2 items-center meat-input-row';
-      row.innerHTML = `
-        <select class="meat-animal bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-xs flex-1">
-          <option ${animal==='Pork'?'selected':''}>Pork</option>
-          <option ${animal==='Beef'?'selected':''}>Beef</option>
-          <option ${animal==='Wild Boar'?'selected':''}>Wild Boar</option>
-          <option ${animal==='Venison'?'selected':''}>Venison</option>
-          <option ${animal==='Duck'?'selected':''}>Duck</option>
-          <option ${animal==='Lamb'?'selected':''}>Lamb</option>
-        </select>
-        <select class="meat-cut bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-xs flex-1">
-          <option ${cut==='Shoulder / Boston Butt'?'selected':''}>Shoulder / Boston Butt</option>
-          <option ${cut==='Back Fat'?'selected':''}>Back Fat</option>
-          <option ${cut==='Belly'?'selected':''}>Belly</option>
-          <option ${cut==='Chuck / Brisket'?'selected':''}>Chuck / Brisket</option>
-          <option ${cut==='Coppa / Collar'?'selected':''}>Coppa / Collar</option>
-          <option ${cut==='Loin / Eye'?'selected':''}>Loin / Eye</option>
-          <option ${cut==='Leg / Round'?'selected':''}>Leg / Round</option>
-        </select>
-        <div class="relative w-20">
-          <input type="number" step="1" value="${ratio}" oninput="updateMeatRatioTotal()" class="meat-ratio w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-xs pr-5 text-right" />
-          <span class="absolute right-1.5 top-1.5 text-[10px] font-bold text-slate-500">%</span>
-        </div>
-        <button type="button" onclick="this.parentElement.remove(); updateMeatRatioTotal();" class="text-slate-400 hover:text-rose-400"><i data-lucide="minus-circle" class="w-4 h-4"></i></button>
-      `;
-      container.appendChild(row);
-      lucide.createIcons();
-    }
-
-    function updateMeatRatioTotal() {
-      const ratioInputs = document.querySelectorAll('.meat-ratio');
-      let total = 0;
-      ratioInputs.forEach(i => total += parseFloat(i.value) || 0);
-
-      const badge = document.getElementById('meat-ratio-total-badge');
-      badge.innerText = `Total: ${total}%`;
-      if (total === 100) {
-        badge.className = 'text-xs font-bold px-2 py-0.5 rounded bg-emerald-900/60 text-emerald-300 border border-emerald-700';
-      } else {
-        badge.className = 'text-xs font-bold px-2 py-0.5 rounded bg-rose-900/60 text-rose-300 border border-rose-700';
-      }
-    }
-
-    function addIngredientRow(name = '', pct = 1.0, fixedAmount = '') {
-      const container = document.getElementById('ingredient-rows-container');
-      const row = document.createElement('div');
-      row.className = 'flex gap-2 items-center ingredient-input-row';
-      row.innerHTML = `
-        <input type="text" value="${name}" placeholder="Ingredient name" class="ing-name bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-xs flex-1" required />
-        <div class="relative w-28">
-          <input type="text" value="${fixedAmount || (pct !== undefined ? pct : '')}" placeholder="e.g. 2.5 or 50g" class="ing-val w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-xs text-right" required />
-        </div>
-        <button type="button" onclick="this.parentElement.remove()" class="text-slate-400 hover:text-rose-400"><i data-lucide="minus-circle" class="w-4 h-4"></i></button>
-      `;
-      container.appendChild(row);
-      lucide.createIcons();
-    }
-
-    function saveRecipe(e) {
-      e.preventDefault();
-      const id = document.getElementById('recipe-edit-id').value || `rec-${Date.now()}`;
-      const name = document.getElementById('recipe-name').value;
-      const description = document.getElementById('recipe-description').value;
-      const isFixed = document.getElementById('recipe-mode').value === 'fixed';
-
-      const blend = [];
-      document.querySelectorAll('.meat-input-row').forEach(row => {
-        blend.push({
-          animal: row.querySelector('.meat-animal').value,
-          cut: row.querySelector('.meat-cut').value,
-          ratio: parseFloat(row.querySelector('.meat-ratio').value) || 0
-        });
-      });
-
-      const ingredients = [];
-      document.querySelectorAll('.ingredient-input-row').forEach(row => {
-        const val = row.querySelector('.ing-val').value;
-        if (isFixed) {
-          ingredients.push({
-            name: row.querySelector('.ing-name').value,
-            fixedAmount: val
-          });
+      const tabs = ['recipes', 'calculator', 'batches', 'sync'];
+      tabs.forEach(id => {
+        const view = document.getElementById(`view-${id}`);
+        const btn = document.getElementById(`tab-btn-${id}`);
+        if (id === tabId) {
+          view?.classList.remove('hidden');
+          if (btn) {
+            btn.className = "px-3 py-2 rounded-md text-xs font-semibold uppercase tracking-wider bg-rose-600 text-white shadow-sm flex items-center gap-2";
+          }
         } else {
-          ingredients.push({
-            name: row.querySelector('.ing-name').value,
-            percentage: parseFloat(val) || 0
-          });
+          view?.classList.add('hidden');
+          if (btn) {
+            btn.className = "px-3 py-2 rounded-md text-xs font-semibold uppercase tracking-wider text-slate-300 hover:text-white hover:bg-slate-800 flex items-center gap-2";
+          }
         }
       });
-
-      const newRecipe = { id, name, description, isFixed, blend, ingredients };
-      const idx = recipes.findIndex(r => r.id === id);
-      if (idx >= 0) recipes[idx] = newRecipe;
-      else recipes.push(newRecipe);
-
-      localStorage.setItem('curecraft_recipes', JSON.stringify(recipes));
-      closeRecipeModal();
-      renderRecipes();
     }
 
-    function deleteRecipe(id) {
-      if (confirm('Delete this recipe?')) {
-        recipes = recipes.filter(r => r.id !== id);
-        localStorage.setItem('curecraft_recipes', JSON.stringify(recipes));
-        renderRecipes();
-      }
-    }
-
-    function editRecipe(id) { openRecipeModal(id); }
-
-    // --- Calculator Engine ---
-    function populateCalcDropdown() {
-      const select = document.getElementById('calc-recipe-select');
-      select.innerHTML = '';
-      recipes.forEach(r => {
-        const opt = document.createElement('option');
-        opt.value = r.id;
-        opt.innerText = r.name;
-        select.appendChild(opt);
-      });
-      calculateBatch();
-    }
-
-    function useInCalculator(recId) {
-      switchTab('calc');
-      document.getElementById('calc-recipe-select').value = recId;
-      calculateBatch();
-    }
-
-    function calculateBatch() {
-      const recId = document.getElementById('calc-recipe-select').value;
-      const recipe = recipes.find(r => r.id === recId);
-      if (!recipe) return;
-
-      const totalGrams = parseFloat(document.getElementById('calc-green-weight').value) || 0;
-      document.getElementById('calc-recipe-title').innerText = `${recipe.name} (${totalGrams}g Target Meat Weight)`;
-
-      // Meat Breakdown
-      const meatContainer = document.getElementById('calc-meat-breakdown');
-      meatContainer.innerHTML = '';
-      (recipe.blend || []).forEach(m => {
-        const gramsNeeded = ((m.ratio / 100) * totalGrams).toFixed(1);
-        const card = document.createElement('div');
-        card.className = 'bg-slate-900 p-3 rounded-lg border border-slate-700/80';
-        card.innerHTML = `
-          <span class="text-[10px] uppercase font-bold text-slate-400 block">${m.animal} • ${m.cut}</span>
-          <div class="flex justify-between items-baseline mt-1">
-            <span class="text-sm font-semibold text-slate-200">${m.ratio}% of Blend</span>
-            <span class="text-base font-bold text-rose-400">${gramsNeeded} g</span>
-          </div>
-        `;
-        meatContainer.appendChild(card);
-      });
-
-      // Ingredients Breakdown
-      const ingBody = document.getElementById('calc-ingredients-body');
-      const pctColHeader = document.getElementById('calc-col-pct');
-      ingBody.innerHTML = '';
-
-      if (recipe.isFixed) {
-        pctColHeader.innerText = "Mode";
-        recipe.ingredients.forEach(ing => {
-          const tr = document.createElement('tr');
-          tr.className = 'hover:bg-slate-700/30';
-          tr.innerHTML = `
-            <td class="px-4 py-2 font-medium text-slate-200">${ing.name}</td>
-            <td class="px-4 py-2 text-amber-300 font-semibold text-xs">Fixed Amount</td>
-            <td class="px-4 py-2 text-right font-bold text-amber-400">${ing.fixedAmount || ing.amount || '1 unit'}</td>
-          `;
-          ingBody.appendChild(tr);
-        });
-      } else {
-        pctColHeader.innerText = "Baker's %";
-        recipe.ingredients.forEach(ing => {
-          const pct = ing.percentage !== undefined ? ing.percentage : ing.pct;
-          const gramsNeeded = ((pct / 100) * totalGrams).toFixed(2);
-          const tr = document.createElement('tr');
-          tr.className = 'hover:bg-slate-700/30';
-          tr.innerHTML = `
-            <td class="px-4 py-2 font-medium text-slate-200">${ing.name}</td>
-            <td class="px-4 py-2 text-rose-300 font-semibold">${pct}%</td>
-            <td class="px-4 py-2 text-right font-bold text-white">${gramsNeeded} g</td>
-          `;
-          ingBody.appendChild(tr);
-        });
-      }
-    }
-
-    // --- Tracker Engine & Graphs ---
-    function renderProjects() {
-      const container = document.getElementById('projects-list');
-      container.innerHTML = '';
-
-      projects.forEach((p) => {
-        const targetWeight = (p.startWeight * (1 - p.targetLossPct / 100)).toFixed(1);
-        const currentWeight = p.logs.length > 0 ? p.logs[p.logs.length - 1].weight : p.startWeight;
-        const currentLossPct = (((p.startWeight - currentWeight) / p.startWeight) * 100).toFixed(1);
-        const progressPct = Math.min(100, Math.max(0, (currentLossPct / p.targetLossPct) * 100)).toFixed(0);
-
-        const card = document.createElement('div');
-        card.className = 'bg-slate-800 rounded-xl border border-slate-700 p-5 space-y-4 shadow-md';
-        card.innerHTML = `
-          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-700 pb-3">
-            <div>
-              <h3 class="font-bold text-lg text-white">${p.name}</h3>
-              <p class="text-xs text-slate-400">Started: ${p.startDate} • Green Weight: ${p.startWeight}g</p>
-            </div>
-            <div class="flex gap-2">
-              <button onclick="openWeighModal('${p.id}')" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition">
-                <i data-lucide="plus" class="w-3.5 h-3.5"></i> Log Weight
-              </button>
-              <button onclick="deleteProject('${p.id}')" class="p-1.5 text-slate-400 hover:text-rose-400"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-700/60 text-xs">
-            <div>
-              <span class="text-slate-400 block">Current Weight</span>
-              <span class="text-base font-bold text-white">${currentWeight}g</span>
-            </div>
-            <div>
-              <span class="text-slate-400 block">Target (${p.targetLossPct}% Loss)</span>
-              <span class="text-base font-bold text-emerald-400">${targetWeight}g</span>
-            </div>
-            <div>
-              <span class="text-slate-400 block">Current Loss</span>
-              <span class="text-base font-bold text-amber-400">${currentLossPct}%</span>
-            </div>
-            <div>
-              <span class="text-slate-400 block">Target Progress</span>
-              <span class="text-base font-bold text-rose-400">${progressPct}%</span>
-            </div>
-          </div>
-
-          <!-- Chart Container -->
-          <div class="bg-slate-900 p-3 rounded-xl border border-slate-700/80">
-            <canvas id="chart-${p.id}" class="w-full h-48"></canvas>
-          </div>
-
-          <!-- Log History Table -->
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs text-slate-300">
-              <thead class="bg-slate-900/40 text-slate-400 uppercase">
-                <tr>
-                  <th class="px-3 py-2">Date</th>
-                  <th class="px-3 py-2">Weight</th>
-                  <th class="px-3 py-2">Loss %</th>
-                  <th class="px-3 py-2">Notes</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-700/40">
-                ${p.logs.map(log => {
-                  const loss = (((p.startWeight - log.weight) / p.startWeight) * 100).toFixed(1);
-                  return `<tr>
-                    <td class="px-3 py-1.5 font-medium text-slate-200">${log.date}</td>
-                    <td class="px-3 py-1.5 font-bold text-white">${log.weight}g</td>
-                    <td class="px-3 py-1.5 text-amber-400 font-semibold">-${loss}%</td>
-                    <td class="px-3 py-1.5 text-slate-400">${log.notes || '-'}</td>
-                  </tr>`;
-                }).join('')}
-              </tbody>
-            </table>
-          </div>
-        `;
-        container.appendChild(card);
-
-        // Render Chart.js
-        setTimeout(() => renderProjectChart(p), 50);
-      });
-      lucide.createIcons();
-    }
-
-    function renderProjectChart(p) {
-      const ctx = document.getElementById(`chart-${p.id}`);
-      if (!ctx) return;
-
-      if (chartInstances[p.id]) chartInstances[p.id].destroy();
-
-      const labels = p.logs.map(l => l.date);
-      const dataWeights = p.logs.map(l => l.weight);
-      const targetWeight = p.startWeight * (1 - p.targetLossPct / 100);
-
-      chartInstances[p.id] = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [
-            {
-              label: 'Actual Weight (g)',
-              data: dataWeights,
-              borderColor: '#f43f5e',
-              backgroundColor: 'rgba(244, 63, 94, 0.1)',
-              fill: true,
-              tension: 0.2
-            },
-            {
-              label: 'Target Weight (g)',
-              data: Array(labels.length).fill(targetWeight),
-              borderColor: '#10b981',
-              borderDash: [5, 5],
-              pointRadius: 0
-            }
-          ]
+    // Initialize Sample Chart
+    const ctx = document.getElementById('dryingChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['Day 0', 'Day 5', 'Day 10', 'Day 15', 'Day 20', 'Day 25', 'Day 30'],
+        datasets: [{
+          label: 'Weight Loss %',
+          data: [0, 8, 16, 23, 29, 33, 35],
+          borderColor: '#f43f5e',
+          backgroundColor: 'rgba(244, 63, 94, 0.1)',
+          fill: true,
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#94a3b8' } }
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { labels: { color: '#94a3b8', font: { size: 10 } } } },
-          scales: {
-            x: { ticks: { color: '#64748b', font: { size: 9 } }, grid: { color: '#334155' } },
-            y: { ticks: { color: '#64748b', font: { size: 9 } }, grid: { color: '#334155' } }
-          }
+        scales: {
+          x: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } },
+          y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } }
         }
-      });
-    }
-
-    function openNewProjectModal() {
-      const name = prompt("Enter Project Batch Name (e.g. Salami Milano Batch #2):");
-      if (!name) return;
-      const startWeight = parseFloat(prompt("Enter Green Start Weight (grams):", "1000"));
-      if (!startWeight) return;
-
-      const newProj = {
-        id: `batch-${Date.now()}`,
-        name,
-        recipeId: recipes[0]?.id || '',
-        startWeight,
-        targetLossPct: 37,
-        startDate: new Date().toISOString().split('T')[0],
-        logs: [{ id: `log-${Date.now()}`, date: new Date().toISOString().split('T')[0], weight: startWeight, notes: 'Green weight logged at stuffing.' }]
-      };
-
-      projects.push(newProj);
-      localStorage.setItem('curecraft_projects', JSON.stringify(projects));
-      renderProjects();
-    }
-
-    function openWeighModal(projectId) {
-      document.getElementById('weigh-project-id').value = projectId;
-      document.getElementById('weigh-grams').value = '';
-      document.getElementById('weigh-notes').value = '';
-      document.getElementById('weigh-modal').classList.remove('hidden');
-    }
-
-    function closeWeighModal() {
-      document.getElementById('weigh-modal').classList.add('hidden');
-    }
-
-    function saveWeighIn(e) {
-      e.preventDefault();
-      const pId = document.getElementById('weigh-project-id').value;
-      const weight = parseFloat(document.getElementById('weigh-grams').value);
-      const notes = document.getElementById('weigh-notes').value;
-
-      const proj = projects.find(p => p.id === pId);
-      if (proj) {
-        proj.logs.push({
-          id: `log-${Date.now()}`,
-          date: new Date().toISOString().split('T')[0],
-          weight,
-          notes
-        });
-        localStorage.setItem('curecraft_projects', JSON.stringify(projects));
-        closeWeighModal();
-        renderProjects();
       }
-    }
-
-    function deleteProject(id) {
-      if (confirm('Delete this project batch?')) {
-        projects = projects.filter(p => p.id !== id);
-        localStorage.setItem('curecraft_projects', JSON.stringify(projects));
-        renderProjects();
-      }
-    }
-
-    // --- Cloud Sync & Diagnostics ---
-    function logDiag(msg) {
-      const consoleEl = document.getElementById('diag-console');
-      if (consoleEl) {
-        const line = document.createElement('div');
-        line.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
-        consoleEl.appendChild(line);
-        consoleEl.scrollTop = consoleEl.scrollHeight;
-      }
-    }
-
-    function runFirebaseDiagnostics() {
-      logDiag('Starting Firebase connection tests...');
-      logDiag('SDK Version: Compat v9.23.0');
-      
-      const code = localStorage.getItem('curecraft_room') || 'brombis';
-      logDiag(`Testing room code pairing: "${code}"`);
-
-      setTimeout(() => {
-        logDiag('Simulating database ping...');
-        logDiag('✔ Local Storage ready.');
-        logDiag('✔ Network status: Online.');
-        logDiag('If ERR_BLOCKED_BY_CLIENT appears in dev tools, disable ad-blocker for GitHub Pages.');
-      }, 500);
-    }
-
-    function exportDataJSON() {
-      const data = { recipes, batches: projects, settings: { roomId: localStorage.getItem('curecraft_room') || 'brombis' } };
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `curecraft_backup_${new Date().toISOString().split('T')[0]}.json`;
-      a.click();
-    }
-
-    function importDataJSON(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        try {
-          const data = JSON.parse(evt.target.result);
-          if (data.recipes) recipes = data.recipes;
-          if (data.batches) projects = data.batches;
-          if (data.settings && data.settings.roomId) {
-            localStorage.setItem('curecraft_room', data.settings.roomId);
-          }
-          localStorage.setItem('curecraft_recipes', JSON.stringify(recipes));
-          localStorage.setItem('curecraft_projects', JSON.stringify(projects));
-          alert('Backup data imported successfully!');
-          renderRecipes();
-        } catch(err) {
-          alert('Invalid backup file.');
-        }
-      };
-      reader.readAsText(file);
-    }
-
-    function saveRoomCode() {
-      const code = document.getElementById('sync-room-code').value.trim();
-      if (code) {
-        localStorage.setItem('curecraft_room', code);
-        document.getElementById('status-text').innerText = `Room: ${code}`;
-        alert(`Connected to sync room: ${code}`);
-      }
-    }
-
-    // --- App Init ---
-    window.onload = function() {
-      renderRecipes();
-      const savedRoom = localStorage.getItem('curecraft_room') || 'brombis';
-      document.getElementById('sync-room-code').value = savedRoom;
-      document.getElementById('status-text').innerText = `Room: ${savedRoom}`;
-      lucide.createIcons();
-    };
+    });
   </script>
 </body>
 </html>
