@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>CureCraft - Meat Curing & Fermentation Tracker</title>
+  <title>CureCraft - Meat Curing & Fermentation Suite</title>
   
   <!-- PWA & Mobile Meta Tags -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-title" content="CureCraft" />
   <meta name="theme-color" content="#1e293b" />
   
-  <!-- Tailwind CSS & Lucide Icons -->
+  <!-- Tailwind CSS & Icons & Chart.js -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -63,7 +63,6 @@
     </div>
   </header>
 
-  <!-- Main Content Container -->
   <main class="flex-1 max-w-5xl w-full mx-auto p-4 md:p-6 space-y-6">
 
     <!-- ================= RECIPES TAB ================= -->
@@ -73,7 +72,7 @@
           <h2 class="text-xl font-bold text-white flex items-center gap-2">
             <i data-lucide="book-open" class="text-rose-400"></i> Recipe Library
           </h2>
-          <p class="text-xs text-slate-400">Manage formulation percentages and custom meat cut proportions.</p>
+          <p class="text-xs text-slate-400">Manage formulations, Baker's percentages, or fixed quantity recipes.</p>
         </div>
         <button onclick="openRecipeModal()" class="w-full sm:w-auto px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-medium text-sm transition flex items-center justify-center gap-2 shadow-md shadow-rose-900/30">
           <i data-lucide="plus" class="w-4 h-4"></i> Add New Recipe
@@ -91,7 +90,7 @@
         <h2 class="text-xl font-bold text-white flex items-center gap-2">
           <i data-lucide="calculator" class="text-rose-400"></i> Batch Scaling Calculator
         </h2>
-        <p class="text-xs text-slate-400">Select a recipe from your library and input your target meat weight.</p>
+        <p class="text-xs text-slate-400">Select a recipe from your library and input your target meat weight (Baker's % scales automatically; Fixed recipes display static quantities).</p>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
           <div>
@@ -100,7 +99,7 @@
               <!-- Options populated by JS -->
             </select>
           </div>
-          <div>
+          <div id="calc-weight-input-container">
             <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Total Target Meat Weight (Grams)</label>
             <div class="relative">
               <input type="number" id="calc-green-weight" value="2000" oninput="calculateBatch()" placeholder="e.g. 2500" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-rose-500 text-sm pl-3 pr-12" />
@@ -136,8 +135,8 @@
                 <thead class="bg-slate-900/60 text-slate-400 text-xs uppercase">
                   <tr>
                     <th class="px-4 py-2.5 rounded-l-lg">Ingredient</th>
-                    <th class="px-4 py-2.5">Baker's %</th>
-                    <th class="px-4 py-2.5 text-right rounded-r-lg">Required Weight</th>
+                    <th id="th-ratio-col" class="px-4 py-2.5">Baker's %</th>
+                    <th class="px-4 py-2.5 text-right rounded-r-lg">Required Amount</th>
                   </tr>
                 </thead>
                 <tbody id="calc-ingredients-body" class="divide-y divide-slate-700/50">
@@ -264,20 +263,29 @@
           <input type="text" id="recipe-name" required placeholder="e.g. Salami Milano, Culatello, Soppressata" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-rose-500" />
         </div>
 
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Category</label>
-          <select id="recipe-category" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-rose-500">
-            <option value="Dry Fermented Salami">Dry Fermented Salami</option>
-            <option value="Whole Muscle Dry Cure">Whole Muscle Dry Cure</option>
-            <option value="Fresh Sausage">Fresh Sausage</option>
-            <option value="Cooked / Smoked Sausage">Cooked / Smoked Sausage</option>
-          </select>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Category</label>
+            <select id="recipe-category" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-rose-500">
+              <option value="Dry Fermented Salami">Dry Fermented Salami</option>
+              <option value="Whole Muscle Dry Cure">Whole Muscle Dry Cure</option>
+              <option value="Fresh Sausage">Fresh Sausage</option>
+              <option value="Cooked / Smoked Sausage">Cooked / Smoked Sausage</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-rose-400 uppercase tracking-wider mb-1">Formulation Type</label>
+            <select id="recipe-type" onchange="toggleRecipeTypeMode()" class="w-full bg-slate-900 border border-rose-500/80 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-rose-500 font-semibold">
+              <option value="bakers">Baker's % (Scaled)</option>
+              <option value="fixed">Fixed Recipe (Exact Amounts)</option>
+            </select>
+          </div>
         </div>
 
-        <!-- Meat & Cut Composition Blend (Sum to 100%) -->
+        <!-- Meat & Cut Composition Blend (Sum to 100% or Fixed) -->
         <div class="space-y-2 pt-2 border-t border-slate-700">
           <div class="flex justify-between items-center">
-            <label class="block text-xs font-semibold text-rose-400 uppercase tracking-wider">Meat & Cut Blend (Target: 100%)</label>
+            <label id="meat-blend-label" class="block text-xs font-semibold text-rose-400 uppercase tracking-wider">Meat & Cut Blend (Target: 100%)</label>
             <span id="meat-ratio-total-badge" class="text-xs font-bold px-2 py-0.5 rounded bg-emerald-900/60 text-emerald-300 border border-emerald-700">Total: 100%</span>
           </div>
 
@@ -290,10 +298,10 @@
           </button>
         </div>
 
-        <!-- Ingredients List (Baker's %) -->
+        <!-- Ingredients List (Baker's % or Fixed Weights) -->
         <div class="space-y-2 pt-2 border-t border-slate-700">
           <div class="flex justify-between items-center">
-            <label class="block text-xs font-semibold text-rose-400 uppercase tracking-wider">Cure Ingredients (Baker's % based on total meat)</label>
+            <label id="ingredient-section-label" class="block text-xs font-semibold text-rose-400 uppercase tracking-wider">Cure Ingredients (Baker's % based on total meat)</label>
           </div>
 
           <div id="ingredient-rows-container" class="space-y-2">
@@ -352,17 +360,35 @@
         id: 'rec_1',
         name: 'Traditional Salami Milano',
         category: 'Dry Fermented Salami',
+        type: 'bakers', // 'bakers' or 'fixed'
         meats: [
           { animal: 'Pork', cut: 'Shoulder / Boston Butt', ratio: 70 },
           { animal: 'Pork', cut: 'Back Fat', ratio: 30 }
         ],
         ingredients: [
-          { name: 'Sea Salt', pct: 2.8 },
-          { name: 'Cure #2 (Prague Powder #2)', pct: 0.25 },
-          { name: 'Dextrose', pct: 0.4 },
-          { name: 'Black Pepper (Cracked)', pct: 0.3 },
-          { name: 'Garlic Powder', pct: 0.15 },
-          { name: 'Bactosalm Starter Culture', pct: 0.05 }
+          { name: 'Sea Salt', pct: 2.8, fixedVal: '' },
+          { name: 'Cure #2 (Prague Powder #2)', pct: 0.25, fixedVal: '' },
+          { name: 'Dextrose', pct: 0.4, fixedVal: '' },
+          { name: 'Black Pepper (Cracked)', pct: 0.3, fixedVal: '' },
+          { name: 'Garlic Powder', pct: 0.15, fixedVal: '' },
+          { name: 'Bactosalm Starter Culture', pct: 0.05, fixedVal: '' }
+        ]
+      },
+      {
+        id: 'rec_2',
+        name: 'Grandma\'s Fixed Herb Pancetta',
+        category: 'Whole Muscle Dry Cure',
+        type: 'fixed',
+        meats: [
+          { animal: 'Pork', cut: 'Belly', ratio: 100 }
+        ],
+        ingredients: [
+          { name: 'Kosher Salt', pct: 0, fixedVal: '50g' },
+          { name: 'Cure #1', pct: 0, fixedVal: '6g' },
+          { name: 'Black Pepper', pct: 0, fixedVal: '15g' },
+          { name: 'Juniper Berries (Crushed)', pct: 0, fixedVal: '10g' },
+          { name: 'Fresh Rosemary', pct: 0, fixedVal: '2 sprigs' },
+          { name: 'Garlic Cloves', pct: 0, fixedVal: '3 minced' }
         ]
       }
     ];
@@ -411,7 +437,8 @@
       container.innerHTML = '';
 
       recipes.forEach(rec => {
-        const meatBreakdownText = rec.meats.map(m => `${m.ratio}% ${m.animal} (${m.cut})`).join(', ');
+        const isFixed = rec.type === 'fixed';
+        const meatBreakdownText = rec.meats.map(m => isFixed ? `${m.animal} (${m.cut})` : `${m.ratio}% ${m.animal} (${m.cut})`).join(', ');
 
         const card = document.createElement('div');
         card.className = 'bg-slate-800 rounded-xl border border-slate-700 p-5 space-y-4 shadow-md flex flex-col justify-between';
@@ -419,8 +446,13 @@
           <div class="space-y-3">
             <div class="flex justify-between items-start gap-2">
               <div>
-                <span class="text-[10px] uppercase font-bold text-rose-400 bg-rose-950/60 border border-rose-800/60 px-2 py-0.5 rounded-full">${rec.category}</span>
-                <h3 class="font-bold text-lg text-white mt-1">${rec.name}</h3>
+                <div class="flex items-center gap-2">
+                  <span class="text-[10px] uppercase font-bold text-rose-400 bg-rose-950/60 border border-rose-800/60 px-2 py-0.5 rounded-full">${rec.category}</span>
+                  <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${isFixed ? 'bg-amber-950/60 text-amber-300 border border-amber-800/60' : 'bg-slate-700 text-slate-300'}">
+                    ${isFixed ? 'Fixed Recipe' : 'Baker\'s %'}
+                  </span>
+                </div>
+                <h3 class="font-bold text-lg text-white mt-1.5">${rec.name}</h3>
               </div>
               <div class="flex gap-1">
                 <button onclick="editRecipe('${rec.id}')" class="p-1.5 text-slate-400 hover:text-slate-200"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
@@ -434,9 +466,9 @@
             </div>
 
             <div class="space-y-1">
-              <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Cure Formulation (Baker's %):</span>
+              <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">${isFixed ? 'Fixed Ingredients (Static Amounts):' : 'Cure Formulation (Baker\'s %):'}</span>
               <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-300 pt-1">
-                ${rec.ingredients.map(ing => `<div class="flex justify-between border-b border-slate-700/40 py-0.5"><span>${ing.name}</span> <span class="font-bold text-rose-300">${ing.pct}%</span></div>`).join('')}
+                ${rec.ingredients.map(ing => `<div class="flex justify-between border-b border-slate-700/40 py-0.5"><span>${ing.name}</span> <span class="font-bold text-rose-300">${isFixed ? (ing.fixedVal || '-') : `${ing.pct}%`}</span></div>`).join('')}
               </div>
             </div>
           </div>
@@ -464,19 +496,57 @@
         document.getElementById('recipe-modal-title').innerText = 'Edit Recipe';
         document.getElementById('recipe-name').value = rec.name;
         document.getElementById('recipe-category').value = rec.category;
+        document.getElementById('recipe-type').value = rec.type || 'bakers';
         
+        toggleRecipeTypeMode();
+
         rec.meats.forEach(m => addMeatRow(m.animal, m.cut, m.ratio));
-        rec.ingredients.forEach(i => addIngredientRow(i.name, i.pct));
+        rec.ingredients.forEach(i => addIngredientRow(i.name, i.pct, i.fixedVal));
       } else {
         document.getElementById('recipe-modal-title').innerText = 'Create New Recipe';
+        document.getElementById('recipe-type').value = 'bakers';
+        toggleRecipeTypeMode();
+
         addMeatRow('Pork', 'Shoulder / Boston Butt', 70);
         addMeatRow('Pork', 'Back Fat', 30);
-        addIngredientRow('Sea Salt', 2.8);
-        addIngredientRow('Cure #2 (Prague Powder #2)', 0.25);
+        addIngredientRow('Sea Salt', 2.8, '');
+        addIngredientRow('Cure #2 (Prague Powder #2)', 0.25, '');
       }
 
       updateMeatRatioTotal();
       document.getElementById('recipe-modal').classList.remove('hidden');
+    }
+
+    function toggleRecipeTypeMode() {
+      const type = document.getElementById('recipe-type').value;
+      const isFixed = type === 'fixed';
+
+      const meatBadge = document.getElementById('meat-ratio-total-badge');
+      const meatLabel = document.getElementById('meat-blend-label');
+      const ingLabel = document.getElementById('ingredient-section-label');
+
+      if (isFixed) {
+        meatBadge.classList.add('hidden');
+        meatLabel.innerText = 'Meat & Cut Selection';
+        ingLabel.innerText = 'Fixed Ingredients (Exact Static Weights/Amounts)';
+      } else {
+        meatBadge.classList.remove('hidden');
+        meatLabel.innerText = 'Meat & Cut Blend (Target: 100%)';
+        ingLabel.innerText = 'Cure Ingredients (Baker\'s % based on total meat)';
+      }
+
+      // Toggle input view on ingredient rows
+      document.querySelectorAll('.ingredient-input-row').forEach(row => {
+        const pctContainer = row.querySelector('.ing-pct-container');
+        const fixedContainer = row.querySelector('.ing-fixed-container');
+        if (isFixed) {
+          if (pctContainer) pctContainer.classList.add('hidden');
+          if (fixedContainer) fixedContainer.classList.remove('hidden');
+        } else {
+          if (pctContainer) pctContainer.classList.remove('hidden');
+          if (fixedContainer) fixedContainer.classList.add('hidden');
+        }
+      });
     }
 
     function closeRecipeModal() {
@@ -516,6 +586,9 @@
     }
 
     function updateMeatRatioTotal() {
+      const isFixed = document.getElementById('recipe-type').value === 'fixed';
+      if (isFixed) return;
+
       const ratioInputs = document.querySelectorAll('.meat-ratio');
       let total = 0;
       ratioInputs.forEach(i => total += parseFloat(i.value) || 0);
@@ -529,16 +602,26 @@
       }
     }
 
-    function addIngredientRow(name = '', pct = 1.0) {
+    function addIngredientRow(name = '', pct = 1.0, fixedVal = '') {
       const container = document.getElementById('ingredient-rows-container');
+      const isFixed = document.getElementById('recipe-type').value === 'fixed';
+
       const row = document.createElement('div');
       row.className = 'flex gap-2 items-center ingredient-input-row';
       row.innerHTML = `
         <input type="text" value="${name}" placeholder="Ingredient name" class="ing-name bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-xs flex-1" required />
-        <div class="relative w-24">
-          <input type="number" step="0.01" value="${pct}" placeholder="0.00" class="ing-pct w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-xs pr-5 text-right" required />
+        
+        <!-- Baker's % Input Container -->
+        <div class="ing-pct-container relative w-24 ${isFixed ? 'hidden' : ''}">
+          <input type="number" step="0.01" value="${pct}" placeholder="0.00" class="ing-pct w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-xs pr-5 text-right" />
           <span class="absolute right-1.5 top-1.5 text-[10px] font-bold text-slate-500">%</span>
         </div>
+
+        <!-- Fixed Amount Input Container -->
+        <div class="ing-fixed-container w-28 ${isFixed ? '' : 'hidden'}">
+          <input type="text" value="${fixedVal || ''}" placeholder="e.g. 50g or 1 tsp" class="ing-fixed-val w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-xs text-right" />
+        </div>
+
         <button type="button" onclick="this.parentElement.remove()" class="text-slate-400 hover:text-rose-400"><i data-lucide="minus-circle" class="w-4 h-4"></i></button>
       `;
       container.appendChild(row);
@@ -550,6 +633,7 @@
       const id = document.getElementById('recipe-edit-id').value || `rec_${Date.now()}`;
       const name = document.getElementById('recipe-name').value;
       const category = document.getElementById('recipe-category').value;
+      const type = document.getElementById('recipe-type').value;
 
       const meats = [];
       document.querySelectorAll('.meat-input-row').forEach(row => {
@@ -564,11 +648,12 @@
       document.querySelectorAll('.ingredient-input-row').forEach(row => {
         ingredients.push({
           name: row.querySelector('.ing-name').value,
-          pct: parseFloat(row.querySelector('.ing-pct').value) || 0
+          pct: parseFloat(row.querySelector('.ing-pct').value) || 0,
+          fixedVal: row.querySelector('.ing-fixed-val').value || ''
         });
       });
 
-      const newRecipe = { id, name, category, meats, ingredients };
+      const newRecipe = { id, name, category, type, meats, ingredients };
       const idx = recipes.findIndex(r => r.id === id);
       if (idx >= 0) recipes[idx] = newRecipe;
       else recipes.push(newRecipe);
@@ -595,7 +680,7 @@
       recipes.forEach(r => {
         const opt = document.createElement('option');
         opt.value = r.id;
-        opt.innerText = r.name;
+        opt.innerText = `${r.name} (${r.type === 'fixed' ? 'Fixed Recipe' : 'Baker\'s %'})`;
         select.appendChild(opt);
       });
       calculateBatch();
@@ -612,23 +697,47 @@
       const recipe = recipes.find(r => r.id === recId);
       if (!recipe) return;
 
+      const isFixed = recipe.type === 'fixed';
+      const weightContainer = document.getElementById('calc-weight-input-container');
+      const ratioTh = document.getElementById('th-ratio-col');
+
+      if (isFixed) {
+        weightContainer.classList.add('opacity-50', 'pointer-events-none');
+        document.getElementById('calc-recipe-title').innerText = `${recipe.name} (Fixed Quantity Recipe)`;
+        if (ratioTh) ratioTh.innerText = 'Recipe Type';
+      } else {
+        weightContainer.classList.remove('opacity-50', 'pointer-events-none');
+        const totalGrams = parseFloat(document.getElementById('calc-green-weight').value) || 0;
+        document.getElementById('calc-recipe-title').innerText = `${recipe.name} (${totalGrams}g Green Weight)`;
+        if (ratioTh) ratioTh.innerText = 'Baker\'s %';
+      }
+
       const totalGrams = parseFloat(document.getElementById('calc-green-weight').value) || 0;
-      document.getElementById('calc-recipe-title').innerText = `${recipe.name} (${totalGrams}g Green Weight)`;
 
       // Meat Breakdown
       const meatContainer = document.getElementById('calc-meat-breakdown');
       meatContainer.innerHTML = '';
       recipe.meats.forEach(m => {
-        const gramsNeeded = ((m.ratio / 100) * totalGrams).toFixed(1);
         const card = document.createElement('div');
         card.className = 'bg-slate-900 p-3 rounded-lg border border-slate-700/80';
-        card.innerHTML = `
-          <span class="text-[10px] uppercase font-bold text-slate-400 block">${m.animal} • ${m.cut}</span>
-          <div class="flex justify-between items-baseline mt-1">
-            <span class="text-sm font-semibold text-slate-200">${m.ratio}% of Total</span>
-            <span class="text-base font-bold text-rose-400">${gramsNeeded} g</span>
-          </div>
-        `;
+        
+        if (isFixed) {
+          card.innerHTML = `
+            <span class="text-[10px] uppercase font-bold text-slate-400 block">${m.animal} • ${m.cut}</span>
+            <div class="flex justify-between items-baseline mt-1">
+              <span class="text-xs font-semibold text-amber-300">Fixed Cut Target</span>
+            </div>
+          `;
+        } else {
+          const gramsNeeded = ((m.ratio / 100) * totalGrams).toFixed(1);
+          card.innerHTML = `
+            <span class="text-[10px] uppercase font-bold text-slate-400 block">${m.animal} • ${m.cut}</span>
+            <div class="flex justify-between items-baseline mt-1">
+              <span class="text-sm font-semibold text-slate-200">${m.ratio}% of Total</span>
+              <span class="text-base font-bold text-rose-400">${gramsNeeded} g</span>
+            </div>
+          `;
+        }
         meatContainer.appendChild(card);
       });
 
@@ -636,16 +745,49 @@
       const ingBody = document.getElementById('calc-ingredients-body');
       ingBody.innerHTML = '';
       recipe.ingredients.forEach(ing => {
-        const gramsNeeded = ((ing.pct / 100) * totalGrams).toFixed(2);
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-slate-700/30';
-        tr.innerHTML = `
-          <td class="px-4 py-2 font-medium text-slate-200">${ing.name}</td>
-          <td class="px-4 py-2 text-rose-300 font-semibold">${ing.pct}%</td>
-          <td class="px-4 py-2 text-right font-bold text-white">${gramsNeeded} g</td>
-        `;
+        
+        if (isFixed) {
+          tr.innerHTML = `
+            <td class="px-4 py-2 font-medium text-slate-200">${ing.name}</td>
+            <td class="px-4 py-2 text-amber-300 font-semibold text-xs">Fixed Amount</td>
+            <td class="px-4 py-2 text-right font-bold text-white">${ing.fixedVal || '-'}</td>
+          `;
+        } else {
+          const gramsNeeded = ((ing.pct / 100) * totalGrams).toFixed(2);
+          tr.innerHTML = `
+            <td class="px-4 py-2 font-medium text-slate-200">${ing.name}</td>
+            <td class="px-4 py-2 text-rose-300 font-semibold">${ing.pct}%</td>
+            <td class="px-4 py-2 text-right font-bold text-white">${gramsNeeded} g</td>
+          `;
+        }
         ingBody.appendChild(tr);
       });
+    }
+
+    function createBatchFromCalc() {
+      const recId = document.getElementById('calc-recipe-select').value;
+      const recipe = recipes.find(r => r.id === recId);
+      if (!recipe) return;
+
+      const greenWeight = parseFloat(document.getElementById('calc-green-weight').value) || 1000;
+      const batchName = prompt(`Enter Batch Name:`, `${recipe.name} Batch`);
+      if (!batchName) return;
+
+      const newProj = {
+        id: `proj_${Date.now()}`,
+        name: batchName,
+        recipeId: recipe.id,
+        startWeight: greenWeight,
+        targetLossPct: 35,
+        startDate: new Date().toISOString().split('T')[0],
+        logs: [{ date: new Date().toISOString().split('T')[0], weight: greenWeight, notes: 'Started batch from calculator.' }]
+      };
+
+      projects.push(newProj);
+      localStorage.setItem('curecraft_projects', JSON.stringify(projects));
+      switchTab('tracker');
     }
 
     // --- Tracker Engine & Graphs ---
