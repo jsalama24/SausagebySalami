@@ -107,7 +107,7 @@
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-sm">
                 <div>
                     <h2 class="text-2xl font-bold text-white tracking-tight">Recipe Library</h2>
-                    <p class="text-slate-400 text-sm mt-1">Manage protein blend formulations, custom spices, and preparation steps.</p>
+                    <p class="text-slate-400 text-sm mt-1">Manage protein blend formulations, Baker's % scaling, fixed recipes, and preparation steps.</p>
                 </div>
                 <button onclick="openRecipeModal()" class="w-full sm:w-auto px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-semibold rounded-xl shadow-lg shadow-rose-900/30 flex items-center justify-center gap-2 transition-all">
                     <i data-lucide="plus" class="w-5 h-5"></i>
@@ -122,7 +122,7 @@
         <section id="view-calculator" class="tab-content space-y-6 hidden">
             <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-sm">
                 <h2 class="text-2xl font-bold text-white tracking-tight">Batch Scaling Calculator</h2>
-                <p class="text-slate-400 text-sm mt-1">Select a recipe, enter total green weight, and compute target component proportions.</p>
+                <p class="text-slate-400 text-sm mt-1">Select a recipe, adjust green weight for Baker's % cures or view exact fixed amounts and processing steps.</p>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -134,7 +134,7 @@
                         </select>
                     </div>
 
-                    <div>
+                    <div id="calc-weight-input-container">
                         <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Target Green Weight (Grams)</label>
                         <div class="relative">
                             <input type="number" id="calc-green-weight" value="1000" min="1" oninput="calculateBatch()" class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-4 pr-12 py-3 text-white text-lg font-bold focus:outline-none focus:border-rose-500">
@@ -155,15 +155,18 @@
                     </div>
 
                     <div id="calc-results" class="hidden space-y-6">
-                        <div class="border-b border-slate-700 pb-4 flex justify-between items-end">
+                        <div class="border-b border-slate-700 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3">
                             <div>
-                                <h3 id="calc-recipe-title" class="text-xl font-bold text-white"></h3>
-                                <p id="calc-recipe-desc" class="text-slate-400 text-sm mt-0.5"></p>
+                                <div class="flex items-center gap-2">
+                                    <h3 id="calc-recipe-title" class="text-xl font-bold text-white"></h3>
+                                    <span id="calc-mode-badge" class="text-xs font-semibold px-2.5 py-0.5 rounded-full border"></span>
+                                </div>
+                                <p id="calc-recipe-desc" class="text-slate-400 text-sm mt-1"></p>
                             </div>
                             <span class="px-3 py-1 bg-rose-500/10 text-rose-400 border border-rose-500/30 rounded-lg text-sm font-semibold" id="calc-total-weight-display"></span>
                         </div>
 
-                        <div>
+                        <div id="calc-meat-section">
                             <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                                 <i data-lucide="drumstick" class="w-4 h-4 text-rose-500"></i> Meat & Fat Blend
                             </h4>
@@ -177,11 +180,11 @@
                             <div id="calc-ingredient-list" class="space-y-2"></div>
                         </div>
 
-                        <div id="calc-steps-section" class="hidden border-t border-slate-700/80 pt-4">
-                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                        <div id="calc-steps-section" class="hidden pt-2 border-t border-slate-700">
+                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                                 <i data-lucide="list-checks" class="w-4 h-4 text-emerald-400"></i> Preparation & Curing Steps
                             </h4>
-                            <div id="calc-steps-content" class="bg-slate-900/80 p-4 rounded-xl border border-slate-700/60 text-xs text-slate-300 whitespace-pre-wrap leading-relaxed"></div>
+                            <ol id="calc-steps-list" class="space-y-2 list-decimal list-inside text-sm text-slate-300 bg-slate-900/80 p-4 rounded-xl border border-slate-700/80"></ol>
                         </div>
                     </div>
                 </div>
@@ -295,9 +298,18 @@
             <form id="recipe-form" onsubmit="handleRecipeSubmit(event)" class="space-y-6">
                 <input type="hidden" id="recipe-id">
 
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Recipe Name</label>
-                    <input type="text" id="recipe-name" required placeholder="e.g., Traditional Soppressata" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-rose-500">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Recipe Name</label>
+                        <input type="text" id="recipe-name" required placeholder="e.g., Traditional Soppressata" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-rose-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Recipe Type</label>
+                        <select id="recipe-mode" onchange="toggleRecipeModeUI()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-rose-500 text-xs font-semibold">
+                            <option value="bakers">Baker's % (Scaled)</option>
+                            <option value="fixed">Fixed Recipe (Exact Amounts)</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div>
@@ -305,8 +317,8 @@
                     <textarea id="recipe-desc" rows="2" placeholder="e.g., Calabrian style dry cured sausage with chili flakes" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-rose-500"></textarea>
                 </div>
 
-                <!-- Meat Blend Builder -->
-                <div class="space-y-3">
+                <!-- Meat Blend Builder (bakers mode) -->
+                <div id="meat-blend-section" class="space-y-3">
                     <div class="flex justify-between items-center">
                         <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Meat Blend Ratio (Must sum to 100%)</label>
                         <span id="blend-total-badge" class="text-xs font-bold px-2.5 py-1 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30">Total: 0%</span>
@@ -319,9 +331,9 @@
                     </button>
                 </div>
 
-                <!-- Curing Ingredients (Baker's % or Fixed Amount) -->
+                <!-- Curing Salts & Ingredients -->
                 <div class="space-y-3">
-                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Curing Salts, Spices & Additives</label>
+                    <label id="ingredients-label" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Curing Salts & Spices (Baker's % based on total meat weight)</label>
                     
                     <div id="ingredients-container" class="space-y-3"></div>
 
@@ -330,10 +342,15 @@
                     </button>
                 </div>
 
-                <!-- Recipe Steps / Instructions -->
-                <div class="space-y-2">
+                <!-- Step-by-step Instructions Builder -->
+                <div class="space-y-3 pt-2 border-t border-slate-700/80">
                     <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Preparation & Curing Steps</label>
-                    <textarea id="recipe-steps" rows="4" placeholder="Step-by-step instructions (e.g. 1. Grind meat using 8mm plate. 2. Mix seasonings until sticky. 3. Stuff into casings...)" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-rose-500 text-xs font-mono"></textarea>
+                    
+                    <div id="steps-container" class="space-y-3"></div>
+
+                    <button type="button" onclick="addStepRow()" class="text-xs text-rose-400 hover:text-rose-300 font-semibold flex items-center gap-1 mt-2">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Add Step Instruction
+                    </button>
                 </div>
 
                 <div class="pt-4 border-t border-slate-700 flex justify-end gap-3">
@@ -447,17 +464,150 @@
         const ANIMAL_TYPES = ['Pork', 'Beef', 'Venison', 'Duck', 'Wild Boar', 'Lamb', 'Poultry'];
         const CUT_TYPES = ['Shoulder / Boston Butt', 'Back Fat', 'Belly', 'Chuck / Brisket', 'Coppa / Collar', 'Loin / Eye', 'Leg / Round'];
 
+        // Initial application dataset incorporating recipe modes and step-by-step instructions
+        const defaultJSONData = {
+          "recipes": [
+            {
+              "id": "rec-1",
+              "name": "Calabrian Soppressata",
+              "mode": "bakers",
+              "description": "Coarsely ground pork with back fat cubes and red chili flake spice.",
+              "blend": [
+                { "animal": "Pork", "cut": "Shoulder / Boston Butt", "ratio": 80 },
+                { "animal": "Pork", "cut": "Back Fat", "ratio": 20 }
+              ],
+              "ingredients": [
+                { "name": "Sea Salt", "percentage": 2.75 },
+                { "name": "Cure #2", "percentage": 0.25 },
+                { "name": "Dextrose", "percentage": 0.3 },
+                { "name": "Calabrian Chili Powder", "percentage": 1.5 },
+                { "name": "Black Pepper (Cracked)", "percentage": 0.5 },
+                { "name": "Starter Culture (B-LC-20)", "percentage": 0.02 }
+              ],
+              "steps": [
+                "Chill pork shoulder and fat to near freezing (30-32°F).",
+                "Grind lean meat through 8mm plate and dice fat into 6mm cubes.",
+                "Mix salts, dextrose, spices, and dissolved culture into meat until tacky extraction is achieved.",
+                "Stuff tightly into 55mm beef middle casings, prick air pockets, and ferment at 72°F / 90% RH for 24-36 hrs.",
+                "Transfer to curing chamber at 55°F / 75% RH until target weight loss is reached."
+              ]
+            },
+            {
+              "id": "rec-2",
+              "name": "Traditional Bresaola",
+              "mode": "bakers",
+              "description": "Whole muscle cured eye of round with rosemary, juniper, and red wine.",
+              "blend": [
+                { "animal": "Beef", "cut": "Leg / Round", "ratio": 100 }
+              ],
+              "ingredients": [
+                { "name": "Kosher Salt", "percentage": 3 },
+                { "name": "Cure #2", "percentage": 0.25 },
+                { "name": "Black Pepper", "percentage": 0.8 },
+                { "name": "Crushed Juniper Berries", "percentage": 0.4 },
+                { "name": "Dried Rosemary", "percentage": 0.2 }
+              ],
+              "steps": [
+                "Trim all external silver skin and fat from the beef eye of round.",
+                "Combine curing ingredients and rub thoroughly over entire surface.",
+                "Vacuum seal in cure bag and equilibrium cure in refrigerator for 14 days, turning daily.",
+                "Rinse cure, pat dry, tie tightly with butcher twine, and hang in curing chamber at 55°F / 75% RH."
+              ]
+            },
+            {
+              "id": "rec-1790311011193",
+              "name": "Calabrese Hot Sopressata Premade Spices",
+              "mode": "bakers",
+              "description": "Used the premade mix from Stuffers",
+              "blend": [
+                { "animal": "Pork", "cut": "Shoulder / Boston Butt", "ratio": 80 },
+                { "animal": "Pork", "cut": "Back Fat", "ratio": 20 }
+              ],
+              "ingredients": [
+                { "name": "Sea Salt", "percentage": 2.75 },
+                { "name": "Cure #2", "percentage": 0.25 }
+              ],
+              "steps": [
+                "Grind meat chilled, add premade spice mix and cure.",
+                "Stuff into casings and ferment before hanging to dry."
+              ]
+            },
+            {
+              "id": "rec-fixed-demo",
+              "name": "Quick Garlic Herb Rub (Fixed Recipe)",
+              "mode": "fixed",
+              "description": "Fixed amount rub for quick small cures without needing total meat weight calculations.",
+              "blend": [],
+              "ingredients": [
+                { "name": "Sea Salt", "amount": "50g" },
+                { "name": "Black Pepper", "amount": "15g" },
+                { "name": "Garlic Powder", "amount": "1 tbsp" },
+                { "name": "Dried Thyme", "amount": "2 tsp" },
+                { "name": "Fresh Rosemary", "amount": "2 sprigs (chopped)" }
+              ],
+              "steps": [
+                "Mix all dry ingredients in a small bowl.",
+                "Apply evenly over target meat cut.",
+                "Refrigerate for desired cure time."
+              ]
+            }
+          ],
+          "batches": [
+            {
+              "id": "batch-1790379629280",
+              "name": "Mid-size",
+              "recipeId": "rec-1790311011193",
+              "greenWeight": 1045,
+              "targetLoss": 37,
+              "startDate": "2026-09-04",
+              "logs": [
+                { "id": "log-1790379675414", "date": "2026-09-13", "weight": 890, "notes": "Good amount of white mold growth" },
+                { "id": "log-1790379699646", "date": "2026-09-17", "weight": 852, "notes": "" },
+                { "id": "log-1790379716579", "date": "2026-09-24", "weight": 802, "notes": "" }
+              ]
+            },
+            {
+              "id": "batch-1790379780616",
+              "name": "Largest Size",
+              "recipeId": "rec-1790311011193",
+              "greenWeight": 1366,
+              "targetLoss": 37,
+              "startDate": "2026-09-04",
+              "logs": [
+                { "id": "log-1790379802448", "date": "2026-09-13", "weight": 1170, "notes": "" },
+                { "id": "log-1790379827356", "date": "2026-09-17", "weight": 1122, "notes": "" },
+                { "id": "log-1790379845929", "date": "2026-09-24", "weight": 1061, "notes": "" }
+              ]
+            },
+            {
+              "id": "batch-1790380073316",
+              "name": "Smallest One",
+              "recipeId": "rec-1790311011193",
+              "greenWeight": 573,
+              "targetLoss": 37,
+              "startDate": "2026-09-04",
+              "logs": [
+                { "id": "log-1790380092022", "date": "2026-09-13", "weight": 459, "notes": "" },
+                { "id": "log-1790380106887", "date": "2026-09-17", "weight": 435, "notes": "" },
+                { "id": "log-1790380119758", "date": "2026-09-24", "weight": 402, "notes": "" }
+              ]
+            }
+          ],
+          "settings": {
+            "roomId": "brombis"
+          }
+        };
+
         let appData = {
             recipes: [],
             batches: [],
-            settings: { roomId: 'brombis' }
+            settings: { roomId: '' }
         };
 
         let chartInstances = {};
         let firestoreDb = null;
         let roomUnsubscribe = null;
 
-        // Default Firebase Public Fallback Config
         const firebaseConfig = {
             apiKey: "AIzaSyCureCraftPublicDemoKey00112233",
             authDomain: "curecraft-demo.firebaseapp.com",
@@ -467,7 +617,6 @@
             appId: "1:100000000000:web:abcdef1234567890"
         };
 
-        // Initialize App
         document.addEventListener('DOMContentLoaded', () => {
             loadLocalData();
             initDefaultData();
@@ -478,142 +627,7 @@
 
         function initDefaultData() {
             if (!appData.recipes || appData.recipes.length === 0) {
-                appData = {
-                    "recipes": [
-                        {
-                            "id": "rec-1",
-                            "name": "Calabrian Soppressata",
-                            "description": "Coarsely ground pork with back fat cubes and red chili flake spice.",
-                            "steps": "",
-                            "blend": [
-                                { "animal": "Pork", "cut": "Shoulder / Boston Butt", "ratio": 80 },
-                                { "animal": "Pork", "cut": "Back Fat", "ratio": 20 }
-                            ],
-                            "ingredients": [
-                                { "name": "Sea Salt", "percentage": 2.75, "isFixed": false },
-                                { "name": "Cure #2", "percentage": 0.25, "isFixed": false },
-                                { "name": "Dextrose", "percentage": 0.3, "isFixed": false },
-                                { "name": "Calabrian Chili Powder", "percentage": 1.5, "isFixed": false },
-                                { "name": "Black Pepper (Cracked)", "percentage": 0.5, "isFixed": false },
-                                { "name": "Starter Culture (B-LC-20)", "percentage": 0.02, "isFixed": false }
-                            ]
-                        },
-                        {
-                            "id": "rec-2",
-                            "name": "Traditional Bresaola",
-                            "description": "Whole muscle cured eye of round with rosemary, juniper, and red wine.",
-                            "steps": "",
-                            "blend": [
-                                { "animal": "Beef", "cut": "Leg / Round", "ratio": 100 }
-                            ],
-                            "ingredients": [
-                                { "name": "Kosher Salt", "percentage": 3, "isFixed": false },
-                                { "name": "Cure #2", "percentage": 0.25, "isFixed": false },
-                                { "name": "Black Pepper", "percentage": 0.8, "isFixed": false },
-                                { "name": "Crushed Juniper Berries", "percentage": 0.4, "isFixed": false },
-                                { "name": "Dried Rosemary", "percentage": 0.2, "isFixed": false }
-                            ]
-                        },
-                        {
-                            "id": "rec-1790311011193",
-                            "name": "Calabrese Hot Sopressata Premade Spices",
-                            "description": "Used the premade mix from Stuffers",
-                            "steps": "",
-                            "blend": [
-                                { "animal": "Pork", "cut": "Shoulder / Boston Butt", "ratio": 80 },
-                                { "animal": "Pork", "cut": "Back Fat", "ratio": 20 }
-                            ],
-                            "ingredients": [
-                                { "name": "Sea Salt", "percentage": 2.75, "isFixed": false },
-                                { "name": "Cure #2", "percentage": 0.25, "isFixed": false }
-                            ]
-                        },
-                        {
-                            "id": "rec-1790372285377",
-                            "name": "OG Sausage Recipe (Texas Hot Links)",
-                            "description": "Liquid could be anything, beer is great",
-                            "steps": "",
-                            "blend": [
-                                { "animal": "Pork", "cut": "Shoulder / Boston Butt", "ratio": 100 }
-                            ],
-                            "ingredients": [
-                                { "name": "Garlic Powder", "percentage": 0.9, "isFixed": false },
-                                { "name": "Mustard Powder", "percentage": 0.9, "isFixed": false },
-                                { "name": "Black Pepper", "percentage": 0.67, "isFixed": false },
-                                { "name": "Cayenne Peppper", "percentage": 0.4, "isFixed": false },
-                                { "name": "Paprika", "percentage": 10, "isFixed": false },
-                                { "name": "Salt", "percentage": 1.75, "isFixed": false },
-                                { "name": "Pink Curing Salt (Cure #1)", "percentage": 0.25, "isFixed": false },
-                                { "name": "Beer (Any Liquid)", "percentage": 10, "isFixed": false }
-                            ]
-                        },
-                        {
-                            "id": "rec-1790372519555",
-                            "name": "Pepperoni",
-                            "description": "Beef used was Top Sirloin",
-                            "steps": "",
-                            "blend": [
-                                { "animal": "Pork", "cut": "Shoulder / Boston Butt", "ratio": 65 },
-                                { "animal": "Beef", "cut": "Loin / Eye", "ratio": 25 },
-                                { "animal": "Pork", "cut": "Back Fat", "ratio": 10 }
-                            ],
-                            "ingredients": [
-                                { "name": "Salt", "percentage": 2.3, "isFixed": false },
-                                { "name": "Cure #1 (Pink Salt)", "percentage": 0.25, "isFixed": false },
-                                { "name": "Dextrose", "percentage": 0.75, "isFixed": false },
-                                { "name": "Black Pepper", "percentage": 0.3, "isFixed": false },
-                                { "name": "White Pepper", "percentage": 0.1, "isFixed": false },
-                                { "name": "Smoked Paprika", "percentage": 1, "isFixed": false },
-                                { "name": "Fennel Seed", "percentage": 0.3, "isFixed": false },
-                                { "name": "Cayenne Pepper", "percentage": 0.5, "isFixed": false }
-                            ]
-                        }
-                    ],
-                    "batches": [
-                        {
-                            "id": "batch-1790379629280",
-                            "name": "Mid-size",
-                            "recipeId": "rec-1790311011193",
-                            "greenWeight": 1045,
-                            "targetLoss": 37,
-                            "startDate": "2026-09-04",
-                            "logs": [
-                                { "id": "log-1790379675414", "date": "2026-09-13", "weight": 890, "notes": "Good amount of white mold growth" },
-                                { "id": "log-1790379699646", "date": "2026-09-17", "weight": 852, "notes": "" },
-                                { "id": "log-1790379716579", "date": "2026-09-24", "weight": 802, "notes": "" }
-                            ]
-                        },
-                        {
-                            "id": "batch-1790379780616",
-                            "name": "Largest Size",
-                            "recipeId": "rec-1790311011193",
-                            "greenWeight": 1366,
-                            "targetLoss": 37,
-                            "startDate": "2026-09-04",
-                            "logs": [
-                                { "id": "log-1790379802448", "date": "2026-09-13", "weight": 1170, "notes": "" },
-                                { "id": "log-1790379827356", "date": "2026-09-17", "weight": 1122, "notes": "" },
-                                { "id": "log-1790379845929", "date": "2026-09-24", "weight": 1061, "notes": "" }
-                            ]
-                        },
-                        {
-                            "id": "batch-1790380073316",
-                            "name": "Smallest One",
-                            "recipeId": "rec-1790311011193",
-                            "greenWeight": 573,
-                            "targetLoss": 37,
-                            "startDate": "2026-09-04",
-                            "logs": [
-                                { "id": "log-1790380092022", "date": "2026-09-13", "weight": 459, "notes": "" },
-                                { "id": "log-1790380106887", "date": "2026-09-17", "weight": 435, "notes": "" },
-                                { "id": "log-1790380119758", "date": "2026-09-24", "weight": 402, "notes": "" }
-                            ]
-                        }
-                    ],
-                    "settings": {
-                        "roomId": "brombis"
-                    }
-                };
+                appData = JSON.parse(JSON.stringify(defaultJSONData));
                 saveLocalData();
             }
         }
@@ -677,40 +691,56 @@
                 const card = document.createElement('div');
                 card.className = "bg-slate-800 border border-slate-700 rounded-2xl p-6 space-y-4 shadow-lg flex flex-col justify-between hover:border-slate-600 transition-colors";
                 
-                let blendHtml = recipe.blend.map(b => `
+                const isFixed = recipe.mode === 'fixed';
+
+                let blendHtml = '';
+                if (!isFixed && recipe.blend && recipe.blend.length > 0) {
+                    blendHtml = `
+                        <div class="space-y-2 pt-2">
+                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Meat Blend</h4>
+                            <div class="bg-slate-900/80 rounded-xl p-3 border border-slate-700/60">
+                                ${recipe.blend.map(b => `
+                                    <div class="flex justify-between text-xs py-1 border-b border-slate-700/50">
+                                        <span class="text-slate-300 font-medium">${b.animal} - ${b.cut}</span>
+                                        <span class="text-rose-400 font-bold">${b.ratio}%</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                let ingHtml = recipe.ingredients.map(i => `
                     <div class="flex justify-between text-xs py-1 border-b border-slate-700/50">
-                        <span class="text-slate-300 font-medium">${b.animal} - ${b.cut}</span>
-                        <span class="text-rose-400 font-bold">${b.ratio}%</span>
+                        <span class="text-slate-400">${i.name}</span>
+                        <span class="text-amber-400 font-mono">${isFixed ? i.amount : i.percentage + '%'}</span>
                     </div>
                 `).join('');
 
-                let ingHtml = recipe.ingredients.map(i => {
-                    const isFixed = i.isFixed || false;
-                    return `
-                        <div class="flex justify-between text-xs py-1 border-b border-slate-700/50">
-                            <span class="text-slate-400 flex items-center gap-1">
-                                ${i.name}
-                                ${isFixed ? '<span class="text-[9px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">Fixed</span>' : ''}
-                            </span>
-                            <span class="text-amber-400 font-mono">${i.amount !== undefined ? i.amount + ' ' + (i.unit || 'g') : i.percentage + '%'}</span>
+                let stepsHtml = '';
+                if (recipe.steps && recipe.steps.length > 0) {
+                    stepsHtml = `
+                        <div class="space-y-2 pt-1">
+                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Steps (${recipe.steps.length})</h4>
+                            <ol class="bg-slate-900/80 rounded-xl p-3 border border-slate-700/60 list-decimal list-inside space-y-1 text-xs text-slate-300 max-h-32 overflow-y-auto">
+                                ${recipe.steps.map(s => `<li class="truncate">${s}</li>`).join('')}
+                            </ol>
                         </div>
                     `;
-                }).join('');
+                }
 
-                let stepsHtml = recipe.steps ? `
-                    <div class="space-y-1.5 pt-1">
-                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Preparation & Steps</h4>
-                        <div class="bg-slate-900/80 rounded-xl p-3 border border-slate-700/60 max-h-24 overflow-y-auto text-xs text-slate-300 whitespace-pre-wrap leading-relaxed">
-                            ${recipe.steps}
-                        </div>
-                    </div>
-                ` : '';
+                const modeBadge = isFixed 
+                    ? '<span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-400 border border-amber-500/30">Fixed Recipe</span>'
+                    : '<span class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-400 border border-rose-500/30">Baker\'s %</span>';
 
                 card.innerHTML = `
                     <div class="space-y-3">
-                        <div class="flex justify-between items-start">
-                            <h3 class="text-xl font-bold text-white tracking-tight">${recipe.name}</h3>
-                            <div class="flex gap-1">
+                        <div class="flex justify-between items-start gap-2">
+                            <div>
+                                <h3 class="text-xl font-bold text-white tracking-tight">${recipe.name}</h3>
+                                <div class="mt-1">${modeBadge}</div>
+                            </div>
+                            <div class="flex gap-1 shrink-0">
                                 <button onclick="editRecipe('${recipe.id}')" title="Edit Recipe" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-700">
                                     <i data-lucide="edit-3" class="w-4 h-4"></i>
                                 </button>
@@ -725,15 +755,10 @@
 
                         <p class="text-xs text-slate-400 line-clamp-2">${recipe.description || 'No description provided.'}</p>
 
-                        <div class="space-y-2 pt-2">
-                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Meat Blend</h4>
-                            <div class="bg-slate-900/80 rounded-xl p-3 border border-slate-700/60">
-                                ${blendHtml}
-                            </div>
-                        </div>
+                        ${blendHtml}
 
                         <div class="space-y-2">
-                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Curing Salts & Spices</h4>
+                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">${isFixed ? 'Exact Ingredients' : 'Baker\'s Curing Salts & Spices'}</h4>
                             <div class="bg-slate-900/80 rounded-xl p-3 border border-slate-700/60 max-h-36 overflow-y-auto">
                                 ${ingHtml}
                             </div>
@@ -757,6 +782,7 @@
             form.reset();
             document.getElementById('meat-components-container').innerHTML = '';
             document.getElementById('ingredients-container').innerHTML = '';
+            document.getElementById('steps-container').innerHTML = '';
 
             if (recipeId) {
                 const recipe = appData.recipes.find(r => r.id === recipeId);
@@ -764,25 +790,57 @@
                     document.getElementById('recipe-modal-title').innerText = "Edit Recipe";
                     document.getElementById('recipe-id').value = recipe.id;
                     document.getElementById('recipe-name').value = recipe.name;
+                    document.getElementById('recipe-mode').value = recipe.mode || 'bakers';
                     document.getElementById('recipe-desc').value = recipe.description || '';
-                    document.getElementById('recipe-steps').value = recipe.steps || '';
 
-                    recipe.blend.forEach(b => addMeatComponentRow(b.animal, b.cut, b.ratio));
-                    recipe.ingredients.forEach(i => addIngredientRow(i.name, i.percentage, i.isFixed || false, i.amount || '', i.unit || 'g'));
+                    if (recipe.blend) recipe.blend.forEach(b => addMeatComponentRow(b.animal, b.cut, b.ratio));
+                    recipe.ingredients.forEach(i => addIngredientRow(i.name, i.percentage || 0, i.amount || ''));
+                    if (recipe.steps) recipe.steps.forEach(s => addStepRow(s));
                 }
             } else {
                 document.getElementById('recipe-modal-title').innerText = "Create Recipe";
                 document.getElementById('recipe-id').value = '';
-                document.getElementById('recipe-steps').value = '';
+                document.getElementById('recipe-mode').value = 'bakers';
                 addMeatComponentRow('Pork', 'Shoulder / Boston Butt', 80);
                 addMeatComponentRow('Pork', 'Back Fat', 20);
-                addIngredientRow('Sea Salt', 2.75, false);
-                addIngredientRow('Cure #2', 0.25, false);
+                addIngredientRow('Sea Salt', 2.75);
+                addIngredientRow('Cure #2', 0.25);
+                addStepRow('Prepare meat and mix spices thoroughly.');
             }
 
-            updateBlendTotal();
+            toggleRecipeModeUI();
             modal.classList.remove('hidden');
             lucide.createIcons();
+        }
+
+        function toggleRecipeModeUI() {
+            const mode = document.getElementById('recipe-mode').value;
+            const isFixed = mode === 'fixed';
+            
+            const meatSection = document.getElementById('meat-blend-section');
+            const ingLabel = document.getElementById('ingredients-label');
+
+            if (isFixed) {
+                meatSection.classList.add('hidden');
+                ingLabel.innerText = "Exact Ingredients / Rub Quantities (Static amounts like 50g, 1 tsp)";
+            } else {
+                meatSection.classList.remove('hidden');
+                ingLabel.innerText = "Curing Salts & Spices (Baker's % based on total meat weight)";
+                updateBlendTotal();
+            }
+
+            // Update row fields in modal for ingredients
+            document.querySelectorAll('.ing-row').forEach(row => {
+                const pctInput = row.querySelector('.ing-pct-wrap');
+                const amtInput = row.querySelector('.ing-amt-wrap');
+                if (isFixed) {
+                    pctInput.classList.add('hidden');
+                    amtInput.classList.remove('hidden');
+                } else {
+                    pctInput.classList.remove('hidden');
+                    amtInput.classList.add('hidden');
+                }
+            });
         }
 
         function closeRecipeModal() {
@@ -817,54 +875,58 @@
             updateBlendTotal();
         }
 
-        function addIngredientRow(name = '', percentage = 0, isFixed = false, amount = '', unit = 'g') {
+        function addIngredientRow(name = '', percentage = 0, amount = '') {
             const container = document.getElementById('ingredients-container');
+            const isFixed = document.getElementById('recipe-mode').value === 'fixed';
             const div = document.createElement('div');
-            div.className = "ing-row flex flex-col sm:flex-row gap-2 items-start sm:items-center bg-slate-900 p-2.5 rounded-xl border border-slate-700/80";
+            div.className = "ing-row flex gap-2 items-center bg-slate-900 p-2.5 rounded-xl border border-slate-700/80";
 
             div.innerHTML = `
-                <input type="text" placeholder="Ingredient / Spice Name" value="${name}" required class="ing-name bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none flex-1 w-full">
+                <input type="text" placeholder="Ingredient Name" value="${name}" required class="ing-name bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none flex-1">
                 
-                <div class="flex items-center gap-2 w-full sm:w-auto">
-                    <label class="flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer select-none">
-                        <input type="checkbox" class="ing-is-fixed rounded bg-slate-800 border-slate-700 text-rose-600 focus:ring-0" ${isFixed ? 'checked' : ''} onchange="toggleIngredientMode(this)">
-                        Fixed Amt
-                    </label>
-
-                    <div class="ing-pct-container w-24 relative ${isFixed ? 'hidden' : ''}">
-                        <input type="number" step="0.01" value="${percentage}" min="0" class="ing-percentage w-full bg-slate-800 border border-slate-700 rounded-lg pr-6 pl-2 py-1.5 text-xs text-white font-bold text-right focus:outline-none">
-                        <span class="absolute right-2 top-1.5 text-xs text-slate-400">%</span>
-                    </div>
-
-                    <div class="ing-fixed-container flex gap-1 w-32 ${isFixed ? '' : 'hidden'}">
-                        <input type="number" step="0.01" placeholder="Amt" value="${amount}" class="ing-amount w-16 bg-slate-800 border border-slate-700 rounded-lg pl-2 py-1.5 text-xs text-white font-bold focus:outline-none">
-                        <input type="text" placeholder="Unit" value="${unit}" class="ing-unit w-14 bg-slate-800 border border-slate-700 rounded-lg px-1 py-1.5 text-xs text-white focus:outline-none">
-                    </div>
-
-                    <button type="button" onclick="this.closest('.ing-row').remove();" class="text-slate-400 hover:text-rose-400 p-1">
-                        <i data-lucide="x-circle" class="w-4 h-4"></i>
-                    </button>
+                <div class="ing-pct-wrap w-24 relative ${isFixed ? 'hidden' : ''}">
+                    <input type="number" step="0.01" value="${percentage}" min="0" class="ing-percentage w-full bg-slate-800 border border-slate-700 rounded-lg pr-6 pl-2 py-1.5 text-xs text-white font-bold text-right focus:outline-none">
+                    <span class="absolute right-2 top-1.5 text-xs text-slate-400">%</span>
                 </div>
+
+                <div class="ing-amt-wrap w-28 relative ${isFixed ? '' : 'hidden'}">
+                    <input type="text" placeholder="e.g. 50g, 1 tsp" value="${amount}" class="ing-amount w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white font-bold focus:outline-none">
+                </div>
+
+                <button type="button" onclick="this.parentElement.remove();" class="text-slate-400 hover:text-rose-400 p-1">
+                    <i data-lucide="x-circle" class="w-4 h-4"></i>
+                </button>
             `;
             container.appendChild(div);
             lucide.createIcons();
         }
 
-        function toggleIngredientMode(checkbox) {
-            const row = checkbox.closest('.ing-row');
-            const pctContainer = row.querySelector('.ing-pct-container');
-            const fixedContainer = row.querySelector('.ing-fixed-container');
+        function addStepRow(text = '') {
+            const container = document.getElementById('steps-container');
+            const div = document.createElement('div');
+            div.className = "flex gap-2 items-center bg-slate-900 p-2.5 rounded-xl border border-slate-700/80";
 
-            if (checkbox.checked) {
-                pctContainer.classList.add('hidden');
-                fixedContainer.classList.remove('hidden');
-            } else {
-                pctContainer.classList.remove('hidden');
-                fixedContainer.classList.add('hidden');
-            }
+            div.innerHTML = `
+                <span class="text-xs text-slate-500 font-bold step-idx font-mono">#</span>
+                <input type="text" placeholder="Describe step process..." value="${text}" required class="step-text bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none flex-1">
+                <button type="button" onclick="this.parentElement.remove(); reindexSteps();" class="text-slate-400 hover:text-rose-400 p-1">
+                    <i data-lucide="x-circle" class="w-4 h-4"></i>
+                </button>
+            `;
+            container.appendChild(div);
+            reindexSteps();
+            lucide.createIcons();
+        }
+
+        function reindexSteps() {
+            document.querySelectorAll('#steps-container .step-idx').forEach((span, idx) => {
+                span.innerText = `${idx + 1}.`;
+            });
         }
 
         function updateBlendTotal() {
+            if (document.getElementById('recipe-mode').value === 'fixed') return;
+
             const ratioInputs = document.querySelectorAll('.meat-ratio');
             let sum = 0;
             ratioInputs.forEach(i => sum += parseFloat(i.value) || 0);
@@ -881,45 +943,58 @@
 
         function handleRecipeSubmit(e) {
             e.preventDefault();
+            const mode = document.getElementById('recipe-mode').value;
+            const isFixed = mode === 'fixed';
 
-            const ratioInputs = document.querySelectorAll('.meat-ratio');
-            let blendSum = 0;
-            ratioInputs.forEach(i => blendSum += parseFloat(i.value) || 0);
+            let blend = [];
+            if (!isFixed) {
+                const ratioInputs = document.querySelectorAll('.meat-ratio');
+                let blendSum = 0;
+                ratioInputs.forEach(i => blendSum += parseFloat(i.value) || 0);
 
-            if (Math.abs(blendSum - 100) > 0.1) {
-                alert("Meat blend percentages must sum to exactly 100%. Current sum: " + blendSum + "%");
-                return;
+                if (Math.abs(blendSum - 100) > 0.1) {
+                    alert("Meat blend percentages must sum to exactly 100%. Current sum: " + blendSum + "%");
+                    return;
+                }
+
+                document.querySelectorAll('#meat-components-container > div').forEach(row => {
+                    blend.push({
+                        animal: row.querySelector('.meat-animal').value,
+                        cut: row.querySelector('.meat-cut').value,
+                        ratio: parseFloat(row.querySelector('.meat-ratio').value) || 0
+                    });
+                });
             }
 
-            const blend = [];
-            document.querySelectorAll('#meat-components-container > div').forEach(row => {
-                blend.push({
-                    animal: row.querySelector('.meat-animal').value,
-                    cut: row.querySelector('.meat-cut').value,
-                    ratio: parseFloat(row.querySelector('.meat-ratio').value) || 0
-                });
+            const ingredients = [];
+            document.querySelectorAll('#ingredients-container > div').forEach(row => {
+                if (isFixed) {
+                    ingredients.push({
+                        name: row.querySelector('.ing-name').value.trim(),
+                        amount: row.querySelector('.ing-amount').value.trim()
+                    });
+                } else {
+                    ingredients.push({
+                        name: row.querySelector('.ing-name').value.trim(),
+                        percentage: parseFloat(row.querySelector('.ing-percentage').value) || 0
+                    });
+                }
             });
 
-            const ingredients = [];
-            document.querySelectorAll('#ingredients-container > .ing-row').forEach(row => {
-                const isFixed = row.querySelector('.ing-is-fixed').checked;
-                ingredients.push({
-                    name: row.querySelector('.ing-name').value.trim(),
-                    isFixed: isFixed,
-                    percentage: isFixed ? 0 : (parseFloat(row.querySelector('.ing-percentage').value) || 0),
-                    amount: isFixed ? (parseFloat(row.querySelector('.ing-amount').value) || 0) : null,
-                    unit: isFixed ? (row.querySelector('.ing-unit').value.trim() || 'g') : null
-                });
+            const steps = [];
+            document.querySelectorAll('#steps-container .step-text').forEach(input => {
+                if (input.value.trim()) steps.push(input.value.trim());
             });
 
             const recipeId = document.getElementById('recipe-id').value || 'rec-' + Date.now();
             const newRecipe = {
                 id: recipeId,
                 name: document.getElementById('recipe-name').value.trim(),
+                mode: mode,
                 description: document.getElementById('recipe-desc').value.trim(),
-                steps: document.getElementById('recipe-steps').value.trim(),
                 blend: blend,
-                ingredients: ingredients
+                ingredients: ingredients,
+                steps: steps
             };
 
             const existingIdx = appData.recipes.findIndex(r => r.id === recipeId);
@@ -972,7 +1047,7 @@
             appData.recipes.forEach(r => {
                 const opt = document.createElement('option');
                 opt.value = r.id;
-                opt.textContent = r.name;
+                opt.textContent = `${r.name} (${r.mode === 'fixed' ? 'Fixed' : 'Baker\'s %'})`;
                 select.appendChild(opt);
             });
 
@@ -981,21 +1056,40 @@
 
         function calculateBatch() {
             const recipeId = document.getElementById('calc-recipe-select').value;
-            const greenWeight = parseFloat(document.getElementById('calc-green-weight').value) || 0;
+            const greenWeightInput = document.getElementById('calc-green-weight');
+            const weightContainer = document.getElementById('calc-weight-input-container');
 
             const emptyState = document.getElementById('calc-empty-state');
             const results = document.getElementById('calc-results');
             const startBtn = document.getElementById('calc-start-tracker-btn');
 
-            if (!recipeId || greenWeight <= 0) {
+            if (!recipeId) {
                 emptyState.classList.remove('hidden');
                 results.classList.add('hidden');
                 startBtn.disabled = true;
+                weightContainer.classList.remove('hidden');
                 return;
             }
 
             const recipe = appData.recipes.find(r => r.id === recipeId);
             if (!recipe) return;
+
+            const isFixed = recipe.mode === 'fixed';
+
+            if (isFixed) {
+                weightContainer.classList.add('hidden');
+            } else {
+                weightContainer.classList.remove('hidden');
+            }
+
+            const greenWeight = parseFloat(greenWeightInput.value) || 0;
+
+            if (!isFixed && greenWeight <= 0) {
+                emptyState.classList.remove('hidden');
+                results.classList.add('hidden');
+                startBtn.disabled = true;
+                return;
+            }
 
             emptyState.classList.add('hidden');
             results.classList.remove('hidden');
@@ -1003,51 +1097,51 @@
 
             document.getElementById('calc-recipe-title').innerText = recipe.name;
             document.getElementById('calc-recipe-desc').innerText = recipe.description || '';
-            document.getElementById('calc-total-weight-display').innerText = `${greenWeight.toLocaleString()}g Green Weight`;
 
-            document.getElementById('calc-meat-list').innerHTML = recipe.blend.map(b => {
-                const weight = (greenWeight * (b.ratio / 100)).toFixed(1);
-                return `
-                    <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700/80 flex justify-between items-center">
-                        <div>
-                            <p class="text-xs font-semibold text-white">${b.animal} - ${b.cut}</p>
-                            <p class="text-[10px] text-slate-400">${b.ratio}% of blend</p>
+            const badge = document.getElementById('calc-mode-badge');
+            if (isFixed) {
+                badge.innerText = 'Fixed Amounts';
+                badge.className = 'text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30';
+                document.getElementById('calc-total-weight-display').innerText = 'Static Quantities';
+                document.getElementById('calc-meat-section').classList.add('hidden');
+            } else {
+                badge.innerText = 'Baker\'s % Scaled';
+                badge.className = 'text-xs font-semibold px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30';
+                document.getElementById('calc-total-weight-display').innerText = `${greenWeight.toLocaleString()}g Green Weight`;
+                document.getElementById('calc-meat-section').classList.remove('hidden');
+
+                document.getElementById('calc-meat-list').innerHTML = recipe.blend.map(b => {
+                    const weight = (greenWeight * (b.ratio / 100)).toFixed(1);
+                    return `
+                        <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700/80 flex justify-between items-center">
+                            <div>
+                                <p class="text-xs font-semibold text-white">${b.animal} - ${b.cut}</p>
+                                <p class="text-[10px] text-slate-400">${b.ratio}% of blend</p>
+                            </div>
+                            <span class="text-sm font-bold text-rose-400 font-mono">${weight} g</span>
                         </div>
-                        <span class="text-sm font-bold text-rose-400 font-mono">${weight} g</span>
+                    `;
+                }).join('');
+            }
+
+            document.getElementById('calc-ingredient-list').innerHTML = recipe.ingredients.map(i => {
+                const displayVal = isFixed ? i.amount : `${(greenWeight * (i.percentage / 100)).toFixed(2)} g`;
+                const subtitle = isFixed ? '' : ` (${i.percentage}%)`;
+                return `
+                    <div class="bg-slate-900/80 px-4 py-2.5 rounded-xl border border-slate-700/80 flex justify-between items-center">
+                        <span class="text-sm font-medium text-slate-300">${i.name}${subtitle}</span>
+                        <span class="text-sm font-bold text-amber-400 font-mono">${displayVal}</span>
                     </div>
                 `;
             }).join('');
 
-            document.getElementById('calc-ingredient-list').innerHTML = recipe.ingredients.map(i => {
-                const isFixed = i.isFixed || false;
-                if (isFixed) {
-                    return `
-                        <div class="bg-slate-900/80 px-4 py-2.5 rounded-xl border border-slate-700/80 flex justify-between items-center">
-                            <span class="text-sm font-medium text-slate-300 flex items-center gap-1.5">
-                                ${i.name}
-                                <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 font-sans">Fixed</span>
-                            </span>
-                            <span class="text-sm font-bold text-amber-400 font-mono">${i.amount} ${i.unit || 'g'}</span>
-                        </div>
-                    `;
-                } else {
-                    const weight = (greenWeight * (i.percentage / 100)).toFixed(2);
-                    return `
-                        <div class="bg-slate-900/80 px-4 py-2.5 rounded-xl border border-slate-700/80 flex justify-between items-center">
-                            <span class="text-sm font-medium text-slate-300">${i.name} (${i.percentage}%)</span>
-                            <span class="text-sm font-bold text-amber-400 font-mono">${weight} g</span>
-                        </div>
-                    `;
-                }
-            }).join('');
-
-            const stepsSec = document.getElementById('calc-steps-section');
-            const stepsContent = document.getElementById('calc-steps-content');
-            if (recipe.steps && recipe.steps.trim() !== '') {
-                stepsContent.innerText = recipe.steps;
-                stepsSec.classList.remove('hidden');
+            const stepsSection = document.getElementById('calc-steps-section');
+            const stepsList = document.getElementById('calc-steps-list');
+            if (recipe.steps && recipe.steps.length > 0) {
+                stepsSection.classList.remove('hidden');
+                stepsList.innerHTML = recipe.steps.map(s => `<li class="py-1">${s}</li>`).join('');
             } else {
-                stepsSec.classList.add('hidden');
+                stepsSection.classList.add('hidden');
             }
         }
 
@@ -1062,7 +1156,6 @@
         function renderBatches() {
             const container = document.getElementById('batches-grid');
             
-            // Clean up old charts before re-rendering
             Object.keys(chartInstances).forEach(id => {
                 if (chartInstances[id]) chartInstances[id].destroy();
             });
@@ -1223,7 +1316,6 @@
                 `;
                 container.appendChild(card);
 
-                // Render Chart for this batch
                 renderBatchChart(batch, logs, targetWeight);
             });
         }
